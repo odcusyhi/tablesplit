@@ -11,7 +11,7 @@ export default function ParticipantRowComponent({ participant, onUpdateAmount, o
   const [amountStr, setAmountStr] = useState(participant.amount > 0 ? participant.amount.toString() : '')
   const [editing, setEditing] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>()
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   // Sync from external updates (real-time)
   useEffect(() => {
