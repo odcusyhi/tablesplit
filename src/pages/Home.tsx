@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { useI18n } from '../lib/i18n'
 
 export default function Home() {
   const navigate = useNavigate()
+  const { t } = useI18n()
   const [loading, setLoading] = useState(false)
   const [tableName, setTableName] = useState('')
 
@@ -33,10 +35,10 @@ export default function Home() {
         <div className="space-y-3">
           <div className="text-5xl">🍽️</div>
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
-            Table<span className="text-primary">Split</span>
+            {t('home.title.1')}<span className="text-primary">{t('home.title.2')}</span>
           </h1>
           <p className="text-gray-400 text-base sm:text-lg leading-relaxed">
-            Split expenses with your group.<br className="sm:hidden" /> No signup needed.
+            {t('home.subtitle')}<br className="sm:hidden" /> {t('home.subtitle.break')}
           </p>
         </div>
 
@@ -44,7 +46,7 @@ export default function Home() {
         <div className="bg-surface-light rounded-2xl p-5 space-y-3 border border-white/5">
           <input
             type="text"
-            placeholder="Table name (e.g. Dinner at Luigi's)"
+            placeholder={t('home.placeholder')}
             value={tableName}
             onChange={(e) => setTableName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && createTable()}
@@ -61,16 +63,16 @@ export default function Home() {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
-                Creating...
+                {t('home.button.loading')}
               </span>
             ) : (
-              'Open Table'
+              t('home.button')
             )}
           </button>
         </div>
 
         <p className="text-gray-500 text-sm px-2">
-          Share the link with your group &mdash; everyone can add their expenses in real-time.
+          {t('home.footer')}
         </p>
       </div>
     </div>

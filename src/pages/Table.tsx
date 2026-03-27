@@ -1,12 +1,14 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase, type TableRow, type ParticipantRow } from '../lib/supabase'
+import { useI18n } from '../lib/i18n'
 import ParticipantRowComponent from '../components/ParticipantRow'
 import SettlementModal from '../components/SettlementModal'
 
 export default function Table() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { t } = useI18n()
   const [table, setTable] = useState<TableRow | null>(null)
   const [participants, setParticipants] = useState<ParticipantRow[]>([])
   const [newName, setNewName] = useState('')
@@ -137,14 +139,14 @@ export default function Table() {
               <svg className="w-4 h-4 text-positive" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
-              Copied!
+              {t('table.copied')}
             </>
           ) : (
             <>
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
               </svg>
-              Share
+              {t('table.share')}
             </>
           )}
         </button>
@@ -153,15 +155,15 @@ export default function Table() {
       {/* Summary Cards */}
       <div className="grid grid-cols-3 gap-2 mb-4">
         <div className="bg-surface-light rounded-xl p-3 border border-white/5 text-center">
-          <div className="text-[11px] text-gray-400 mb-0.5">People</div>
+          <div className="text-[11px] text-gray-400 mb-0.5">{t('table.people')}</div>
           <div className="text-lg font-bold">{participants.length}</div>
         </div>
         <div className="bg-surface-light rounded-xl p-3 border border-white/5 text-center">
-          <div className="text-[11px] text-gray-400 mb-0.5">Total</div>
+          <div className="text-[11px] text-gray-400 mb-0.5">{t('table.total')}</div>
           <div className="text-lg font-bold">{total.toFixed(2)}</div>
         </div>
         <div className="bg-surface-light rounded-xl p-3 border border-white/5 text-center">
-          <div className="text-[11px] text-gray-400 mb-0.5">Per person</div>
+          <div className="text-[11px] text-gray-400 mb-0.5">{t('table.perPerson')}</div>
           <div className="text-lg font-bold">{perPerson.toFixed(2)}</div>
         </div>
       </div>
@@ -171,7 +173,7 @@ export default function Table() {
         <input
           ref={nameInputRef}
           type="text"
-          placeholder="Add a person..."
+          placeholder={t('table.addPerson')}
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && addParticipant()}
@@ -193,7 +195,7 @@ export default function Table() {
         {participants.length === 0 ? (
           <div className="text-center py-16 text-gray-500">
             <div className="text-4xl mb-3">👥</div>
-            <p>Add people to get started</p>
+            <p>{t('table.empty')}</p>
           </div>
         ) : (
           participants.map((p) => (
@@ -214,7 +216,7 @@ export default function Table() {
             onClick={() => setShowSettlement(true)}
             className="w-full py-4 rounded-xl bg-gradient-to-r from-primary to-accent text-white font-bold text-lg transition-all duration-200 hover:shadow-lg hover:shadow-primary/25 active:scale-[0.97] cursor-pointer"
           >
-            Split the bill 💸
+            {t('table.split')}
           </button>
         </div>
       )}
@@ -226,7 +228,7 @@ export default function Table() {
           onClose={() => setShowSettlement(false)}
           onCloseTable={async () => {
             if (!id) return
-            if (!confirm('Close this table? This will delete all data permanently.')) return
+            if (!confirm(t('table.closeConfirm'))) return
             await supabase.from('participants').delete().eq('table_id', id)
             await supabase.from('tables').delete().eq('id', id)
             navigate('/')

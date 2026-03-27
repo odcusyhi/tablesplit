@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { calculateSettlement, type Participant } from '../lib/settlement'
+import { useI18n } from '../lib/i18n'
 
 type Props = {
   participants: Participant[]
@@ -9,22 +10,23 @@ type Props = {
 
 export default function SettlementModal({ participants, onClose, onCloseTable }: Props) {
   const [copied, setCopied] = useState(false)
+  const { t } = useI18n()
   const payments = calculateSettlement(participants)
   const total = participants.reduce((sum, p) => sum + p.amount, 0)
   const perPerson = total / participants.length
 
   const buildCopyText = () => {
-    let text = `🍽️ TableSplit Settlement\n`
+    let text = `${t('settlement.copyText.title')}\n`
     text += `━━━━━━━━━━━━━━━━━━━━\n`
-    text += `Total: ${total.toFixed(2)} | Per person: ${perPerson.toFixed(2)}\n\n`
+    text += `${t('settlement.copyText.total')}: ${total.toFixed(2)} | ${t('settlement.copyText.perPerson')}: ${perPerson.toFixed(2)}\n\n`
 
     if (payments.length > 0) {
-      text += `💸 Who pays whom:\n`
+      text += `${t('settlement.copyText.whoPays')}\n`
       payments.forEach((p) => {
         text += `  ${p.from} → ${p.to}: ${p.amount.toFixed(2)}\n`
       })
     } else {
-      text += `✨ Everyone paid equally!\n`
+      text += `${t('settlement.copyText.equal')}\n`
     }
 
     return text
@@ -44,11 +46,11 @@ export default function SettlementModal({ participants, onClose, onCloseTable }:
         onClick={onClose}
       />
 
-      {/* Modal — full-width sheet on mobile, centered card on desktop */}
+      {/* Modal */}
       <div className="relative bg-surface-light border border-white/10 rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[85dvh] overflow-y-auto p-5 space-y-4 animate-slide-up safe-bottom">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold">Settlement</h2>
+          <h2 className="text-xl font-bold">{t('settlement.title')}</h2>
           <button
             onClick={onClose}
             className="text-gray-400 active:text-white hover:text-white transition cursor-pointer p-2 -mr-2 rounded-lg active:bg-white/5"
@@ -67,22 +69,22 @@ export default function SettlementModal({ participants, onClose, onCloseTable }:
         {/* Summary */}
         <div className="bg-surface rounded-xl p-4 space-y-2.5 border border-white/5">
           <div className="flex justify-between text-sm">
-            <span className="text-gray-400">Total spent</span>
+            <span className="text-gray-400">{t('settlement.totalSpent')}</span>
             <span className="font-semibold">{total.toFixed(2)}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-gray-400">Per person</span>
+            <span className="text-gray-400">{t('settlement.perPerson')}</span>
             <span className="font-semibold">{perPerson.toFixed(2)}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-gray-400">Transactions needed</span>
+            <span className="text-gray-400">{t('settlement.transactions')}</span>
             <span className="font-semibold">{payments.length}</span>
           </div>
         </div>
 
         {/* Individual Balances */}
         <div>
-          <h3 className="text-sm font-medium text-gray-400 mb-2">Balances</h3>
+          <h3 className="text-sm font-medium text-gray-400 mb-2">{t('settlement.balances')}</h3>
           <div className="space-y-2">
             {participants.map((p) => {
               const diff = p.amount - perPerson
@@ -110,7 +112,7 @@ export default function SettlementModal({ participants, onClose, onCloseTable }:
         {/* Payments */}
         {payments.length > 0 ? (
           <div>
-            <h3 className="text-sm font-medium text-gray-400 mb-2">Who pays whom</h3>
+            <h3 className="text-sm font-medium text-gray-400 mb-2">{t('settlement.whoPays')}</h3>
             <div className="space-y-2">
               {payments.map((payment, i) => (
                 <div
@@ -135,7 +137,7 @@ export default function SettlementModal({ participants, onClose, onCloseTable }:
         ) : (
           <div className="text-center py-4 text-gray-400">
             <div className="text-2xl mb-1">✨</div>
-            <p>Everyone paid equally!</p>
+            <p>{t('settlement.allEqual')}</p>
           </div>
         )}
 
@@ -150,14 +152,14 @@ export default function SettlementModal({ participants, onClose, onCloseTable }:
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
-                Copied to clipboard!
+                {t('settlement.copyDone')}
               </>
             ) : (
               <>
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
-                Copy settlement
+                {t('settlement.copy')}
               </>
             )}
           </button>
@@ -169,7 +171,7 @@ export default function SettlementModal({ participants, onClose, onCloseTable }:
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
-            Close table
+            {t('settlement.closeTable')}
           </button>
         </div>
       </div>
