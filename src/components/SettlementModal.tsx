@@ -44,14 +44,14 @@ export default function SettlementModal({ participants, onClose, onCloseTable }:
         onClick={onClose}
       />
 
-      {/* Modal */}
-      <div className="relative bg-surface-light border border-white/10 rounded-t-2xl sm:rounded-2xl w-full max-w-md max-h-[80vh] overflow-y-auto p-6 space-y-5 animate-slide-up">
+      {/* Modal — full-width sheet on mobile, centered card on desktop */}
+      <div className="relative bg-surface-light border border-white/10 rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[85dvh] overflow-y-auto p-5 space-y-4 animate-slide-up safe-bottom">
         {/* Header */}
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold">Settlement</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition cursor-pointer p-1"
+            className="text-gray-400 active:text-white hover:text-white transition cursor-pointer p-2 -mr-2 rounded-lg active:bg-white/5"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -59,8 +59,13 @@ export default function SettlementModal({ participants, onClose, onCloseTable }:
           </button>
         </div>
 
+        {/* Drag indicator on mobile */}
+        <div className="sm:hidden flex justify-center -mt-2 mb-1">
+          <div className="w-10 h-1 rounded-full bg-white/20" />
+        </div>
+
         {/* Summary */}
-        <div className="bg-surface rounded-xl p-4 space-y-2 border border-white/5">
+        <div className="bg-surface rounded-xl p-4 space-y-2.5 border border-white/5">
           <div className="flex justify-between text-sm">
             <span className="text-gray-400">Total spent</span>
             <span className="font-semibold">{total.toFixed(2)}</span>
@@ -78,11 +83,11 @@ export default function SettlementModal({ participants, onClose, onCloseTable }:
         {/* Individual Balances */}
         <div>
           <h3 className="text-sm font-medium text-gray-400 mb-2">Balances</h3>
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             {participants.map((p) => {
               const diff = p.amount - perPerson
               return (
-                <div key={p.name} className="flex items-center justify-between text-sm">
+                <div key={p.name} className="flex items-center justify-between text-sm py-0.5">
                   <span>{p.name}</span>
                   <span
                     className={
@@ -110,14 +115,14 @@ export default function SettlementModal({ participants, onClose, onCloseTable }:
               {payments.map((payment, i) => (
                 <div
                   key={i}
-                  className="flex items-center gap-3 bg-surface rounded-xl px-4 py-3 border border-white/5"
+                  className="flex items-center gap-2.5 bg-surface rounded-xl px-3.5 py-3 border border-white/5"
                 >
                   <div className="w-8 h-8 rounded-full bg-negative/20 text-negative flex items-center justify-center text-xs font-bold shrink-0">
                     {payment.from.charAt(0).toUpperCase()}
                   </div>
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 text-sm">
                     <span className="font-medium">{payment.from}</span>
-                    <span className="text-gray-400 mx-2">→</span>
+                    <span className="text-gray-400 mx-1.5">→</span>
                     <span className="font-medium">{payment.to}</span>
                   </div>
                   <span className="font-bold text-warn shrink-0">
@@ -135,10 +140,10 @@ export default function SettlementModal({ participants, onClose, onCloseTable }:
         )}
 
         {/* Action Buttons */}
-        <div className="space-y-2">
+        <div className="space-y-2 pt-1">
           <button
             onClick={handleCopy}
-            className="w-full py-3 rounded-xl bg-primary hover:bg-primary-dark text-white font-medium transition cursor-pointer flex items-center justify-center gap-2"
+            className="w-full py-3.5 rounded-xl bg-primary hover:bg-primary-dark active:bg-primary-dark text-white font-medium transition cursor-pointer flex items-center justify-center gap-2"
           >
             {copied ? (
               <>
@@ -159,7 +164,7 @@ export default function SettlementModal({ participants, onClose, onCloseTable }:
 
           <button
             onClick={onCloseTable}
-            className="w-full py-3 rounded-xl bg-negative/10 border border-negative/20 text-negative font-medium hover:bg-negative/20 transition cursor-pointer flex items-center justify-center gap-2"
+            className="w-full py-3.5 rounded-xl bg-negative/10 border border-negative/20 text-negative font-medium hover:bg-negative/20 active:bg-negative/20 transition cursor-pointer flex items-center justify-center gap-2"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />

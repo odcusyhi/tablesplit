@@ -21,11 +21,9 @@ export default function ParticipantRowComponent({ participant, onUpdateAmount, o
   }, [participant.amount, editing])
 
   const handleAmountChange = (value: string) => {
-    // Allow empty, numbers, and one decimal point
     if (value === '' || /^\d*\.?\d{0,2}$/.test(value)) {
       setAmountStr(value)
 
-      // Debounce the update
       if (debounceRef.current) clearTimeout(debounceRef.current)
       debounceRef.current = setTimeout(() => {
         const num = parseFloat(value) || 0
@@ -43,7 +41,7 @@ export default function ParticipantRowComponent({ participant, onUpdateAmount, o
   }
 
   return (
-    <div className="flex items-center gap-3 bg-surface-light rounded-xl px-4 py-3 border border-white/5 group">
+    <div className="flex items-center gap-2.5 bg-surface-light rounded-xl px-3 py-3 border border-white/5">
       {/* Avatar */}
       <div className="w-9 h-9 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-bold shrink-0">
         {participant.name.charAt(0).toUpperCase()}
@@ -51,28 +49,26 @@ export default function ParticipantRowComponent({ participant, onUpdateAmount, o
 
       {/* Name */}
       <div className="flex-1 min-w-0">
-        <span className="font-medium truncate block">{participant.name}</span>
+        <span className="font-medium truncate block text-[15px]">{participant.name}</span>
       </div>
 
       {/* Amount Input */}
-      <div className="relative">
-        <input
-          ref={inputRef}
-          type="text"
-          inputMode="decimal"
-          value={amountStr}
-          placeholder="0.00"
-          onFocus={() => setEditing(true)}
-          onChange={(e) => handleAmountChange(e.target.value)}
-          onBlur={handleBlur}
-          className="w-24 text-right px-3 py-1.5 rounded-lg bg-surface-lighter border border-white/10 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition text-sm font-mono"
-        />
-      </div>
+      <input
+        ref={inputRef}
+        type="text"
+        inputMode="decimal"
+        value={amountStr}
+        placeholder="0.00"
+        onFocus={() => setEditing(true)}
+        onChange={(e) => handleAmountChange(e.target.value)}
+        onBlur={handleBlur}
+        className="w-[88px] text-right px-3 py-2 rounded-lg bg-surface-lighter border border-white/10 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition text-sm font-mono"
+      />
 
-      {/* Remove */}
+      {/* Remove — always visible on mobile */}
       <button
         onClick={() => onRemove(participant.id)}
-        className="opacity-0 group-hover:opacity-100 text-gray-500 hover:text-negative transition cursor-pointer p-1"
+        className="text-gray-500 active:text-negative hover:text-negative transition cursor-pointer p-2 -mr-1 rounded-lg active:bg-white/5"
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />

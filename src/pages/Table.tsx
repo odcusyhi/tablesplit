@@ -15,7 +15,6 @@ export default function Table() {
   const [copied, setCopied] = useState(false)
   const nameInputRef = useRef<HTMLInputElement>(null)
 
-  // Fetch table and participants
   useEffect(() => {
     if (!id) return
 
@@ -45,7 +44,6 @@ export default function Table() {
 
     fetchData()
 
-    // Real-time subscription
     const channel = supabase
       .channel(`table-${id}`)
       .on(
@@ -109,30 +107,30 @@ export default function Table() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-dvh flex items-center justify-center">
         <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen px-4 py-8 max-w-lg mx-auto">
+    <div className="min-h-dvh flex flex-col px-4 safe-top">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between py-4">
         <button
           onClick={() => navigate('/')}
-          className="text-gray-400 hover:text-white transition cursor-pointer"
+          className="text-gray-400 hover:text-white active:text-white transition cursor-pointer p-2 -ml-2 rounded-lg active:bg-white/5"
         >
           <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-        <h1 className="text-xl font-bold truncate mx-4">
+        <h1 className="text-lg font-bold truncate mx-3 flex-1 text-center">
           {table?.name || 'Table'}
         </h1>
         <button
           onClick={copyLink}
-          className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg bg-surface-lighter border border-white/10 text-gray-300 hover:text-white hover:border-primary/50 transition cursor-pointer"
+          className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg bg-surface-lighter border border-white/10 text-gray-300 active:bg-white/10 transition cursor-pointer shrink-0"
         >
           {copied ? (
             <>
@@ -153,23 +151,23 @@ export default function Table() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
+      <div className="grid grid-cols-3 gap-2 mb-4">
         <div className="bg-surface-light rounded-xl p-3 border border-white/5 text-center">
-          <div className="text-xs text-gray-400 mb-1">People</div>
+          <div className="text-[11px] text-gray-400 mb-0.5">People</div>
           <div className="text-lg font-bold">{participants.length}</div>
         </div>
         <div className="bg-surface-light rounded-xl p-3 border border-white/5 text-center">
-          <div className="text-xs text-gray-400 mb-1">Total</div>
+          <div className="text-[11px] text-gray-400 mb-0.5">Total</div>
           <div className="text-lg font-bold">{total.toFixed(2)}</div>
         </div>
         <div className="bg-surface-light rounded-xl p-3 border border-white/5 text-center">
-          <div className="text-xs text-gray-400 mb-1">Per person</div>
+          <div className="text-[11px] text-gray-400 mb-0.5">Per person</div>
           <div className="text-lg font-bold">{perPerson.toFixed(2)}</div>
         </div>
       </div>
 
       {/* Add Participant */}
-      <div className="flex gap-2 mb-4">
+      <div className="flex gap-2 mb-3">
         <input
           ref={nameInputRef}
           type="text"
@@ -177,12 +175,12 @@ export default function Table() {
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && addParticipant()}
-          className="flex-1 px-4 py-2.5 rounded-xl bg-surface-lighter border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition"
+          className="flex-1 px-4 py-3 rounded-xl bg-surface-lighter border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition"
         />
         <button
           onClick={addParticipant}
           disabled={!newName.trim()}
-          className="px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-medium transition disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+          className="px-4 py-3 rounded-xl bg-primary hover:bg-primary-dark active:bg-primary-dark text-white font-medium transition disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -191,9 +189,9 @@ export default function Table() {
       </div>
 
       {/* Participants List */}
-      <div className="space-y-2 mb-6">
+      <div className="space-y-2 flex-1 overflow-y-auto">
         {participants.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">
+          <div className="text-center py-16 text-gray-500">
             <div className="text-4xl mb-3">👥</div>
             <p>Add people to get started</p>
           </div>
@@ -209,14 +207,16 @@ export default function Table() {
         )}
       </div>
 
-      {/* Split Button */}
+      {/* Split Button — sticky bottom */}
       {participants.length >= 2 && (
-        <button
-          onClick={() => setShowSettlement(true)}
-          className="w-full py-3.5 rounded-xl bg-gradient-to-r from-primary to-accent text-white font-bold text-lg transition-all duration-200 hover:shadow-lg hover:shadow-primary/25 active:scale-[0.98] cursor-pointer"
-        >
-          Split the bill 💸
-        </button>
+        <div className="sticky bottom-0 pt-3 pb-4 safe-bottom bg-gradient-to-t from-surface via-surface to-transparent -mx-4 px-4">
+          <button
+            onClick={() => setShowSettlement(true)}
+            className="w-full py-4 rounded-xl bg-gradient-to-r from-primary to-accent text-white font-bold text-lg transition-all duration-200 hover:shadow-lg hover:shadow-primary/25 active:scale-[0.97] cursor-pointer"
+          >
+            Split the bill 💸
+          </button>
+        </div>
       )}
 
       {/* Settlement Modal */}

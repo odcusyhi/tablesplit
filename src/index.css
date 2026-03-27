@@ -12,10 +12,33 @@
   --color-warn: #fbbf24;
 }
 
+html {
+  height: -webkit-fill-available;
+}
+
 body {
-  @apply bg-surface text-white min-h-screen antialiased;
+  @apply bg-surface text-white antialiased;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   margin: 0;
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior: none;
+}
+
+/* Prevent iOS zoom on input focus */
+input, select, textarea {
+  font-size: 16px !important;
+}
+
+/* Safe area support */
+.safe-bottom {
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 16px);
+}
+
+.safe-top {
+  padding-top: max(env(safe-area-inset-top, 0px), 16px);
 }
 
 @keyframes slide-up {
