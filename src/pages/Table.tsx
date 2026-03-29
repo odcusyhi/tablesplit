@@ -95,6 +95,7 @@ export default function Table() {
   }
 
   const removeParticipant = async (participantId: string) => {
+    setParticipants((prev) => prev.filter((p) => p.id !== participantId))
     await supabase.from('participants').delete().eq('id', participantId)
   }
 
