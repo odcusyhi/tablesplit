@@ -95,6 +95,7 @@ export default function Table() {
   }
 
   const removeParticipant = async (participantId: string) => {
+    setParticipants((prev) => prev.filter((p) => p.id !== participantId))
     await supabase.from('participants').delete().eq('id', participantId)
   }
 
@@ -130,26 +131,6 @@ export default function Table() {
         <h1 className="text-lg font-bold truncate mx-3 flex-1 text-center">
           {table?.name || 'Table'}
         </h1>
-        <button
-          onClick={copyLink}
-          className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg bg-surface-lighter border border-white/10 text-gray-300 active:bg-white/10 transition cursor-pointer shrink-0"
-        >
-          {copied ? (
-            <>
-              <svg className="w-4 h-4 text-positive" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-              {t('table.copied')}
-            </>
-          ) : (
-            <>
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-              </svg>
-              {t('table.share')}
-            </>
-          )}
-        </button>
       </div>
 
       {/* Summary Cards */}
@@ -217,6 +198,26 @@ export default function Table() {
             className="w-full py-4 rounded-xl bg-gradient-to-r from-primary to-accent text-white font-bold text-lg transition-all duration-200 hover:shadow-lg hover:shadow-primary/25 active:scale-[0.97] cursor-pointer"
           >
             {t('table.split')}
+          </button>
+          <button
+            onClick={copyLink}
+            className="w-full mt-2 py-3 rounded-xl flex items-center justify-center gap-1.5 text-sm bg-surface-lighter border border-white/10 text-gray-300 active:bg-white/10 transition cursor-pointer"
+          >
+            {copied ? (
+              <>
+                <svg className="w-4 h-4 text-positive" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                {t('table.copied')}
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                </svg>
+                {t('table.share')}
+              </>
+            )}
           </button>
         </div>
       )}
