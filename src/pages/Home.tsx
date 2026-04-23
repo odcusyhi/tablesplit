@@ -15,23 +15,14 @@ export default function Home() {
   const create = async () => {
     setLoading(true)
     try {
-      if (mode === 'table') {
-        const { data, error } = await supabase
-          .from('tables')
-          .insert({ name: name || 'My Table' })
-          .select()
-          .single()
-        if (error) throw error
-        navigate(`/t/${data.id}`)
-      } else {
-        const { data, error } = await supabase
-          .from('trips')
-          .insert({ name: name || 'My Trip' })
-          .select()
-          .single()
-        if (error) throw error
-        navigate(`/trip/${data.id}`)
-      }
+      const defaultName = mode === 'trip' ? 'My Trip' : 'My Table'
+      const { data, error } = await supabase
+        .from('tables')
+        .insert({ name: name || defaultName })
+        .select()
+        .single()
+      if (error) throw error
+      navigate(mode === 'trip' ? `/trip/${data.id}` : `/t/${data.id}`)
     } catch (err) {
       console.error('Error creating:', err)
       alert('Failed to create. Check your Supabase config.')

@@ -24,25 +24,3 @@ export type ParticipantRow = {
   amount: number
   created_at: string
 }
-
-export type TripRow = {
-  id: string
-  name: string | null
-  created_at: string
-}
-
-export type TripParticipantRow = {
-  id: string
-  trip_id: string
-  name: string
-  created_at: string
-}
-
-export type TripExpenseRow = {
-  id: string
-  trip_id: string
-  participant_id: string
-  description: string
-  amount: number
-  created_at: string
-}

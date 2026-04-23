@@ -1,21 +1,41 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import {
-  supabase,
-  type TripRow,
-  type TripParticipantRow,
-  type TripExpenseRow,
-} from '../lib/supabase'
+import { supabase, type TableRow, type ParticipantRow } from '../lib/supabase'
 import { useI18n } from '../lib/i18n'
 import SettlementModal from '../components/SettlementModal'
+
+// Encoding: trips reuse the existing `tables` + `participants` schema.
+//  - Person row:   name = "__P__<displayName>",            amount = 0
+//  - Expense row:  name = "__E__<personRowId>|<descr>",    amount = <amount>
+const PERSON_PREFIX = '__P__'
+const EXPENSE_PREFIX = '__E__'
+
+type Person = { id: string; name: string }
+type Expense = { id: string; payerId: string; description: string; amount: number }
+
+function parseRows(rows: ParticipantRow[]): { people: Person[]; expenses: Expense[] } {
+  const people: Person[] = []
+  const expenses: Expense[] = []
+  for (const r of rows) {
+    if (r.name.startsWith(PERSON_PREFIX)) {
+      people.push({ id: r.id, name: r.name.slice(PERSON_PREFIX.length) })
+    } else if (r.name.startsWith(EXPENSE_PREFIX)) {
+      const rest = r.name.slice(EXPENSE_PREFIX.length)
+      const sep = rest.indexOf('|')
+      const payerId = sep === -1 ? rest : rest.slice(0, sep)
+      const description = sep === -1 ? '' : rest.slice(sep + 1)
+      expenses.push({ id: r.id, payerId, description, amount: Number(r.amount) || 0 })
+    }
+  }
+  return { people, expenses }
+}
 
 export default function Trip() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { t } = useI18n()
-  const [trip, setTrip] = useState<TripRow | null>(null)
-  const [people, setPeople] = useState<TripParticipantRow[]>([])
-  const [expenses, setExpenses] = useState<TripExpenseRow[]>([])
+  const [trip, setTrip] = useState<TableRow | null>(null)
+  const [rows, setRows] = useState<ParticipantRow[]>([])
   const [newName, setNewName] = useState('')
   const [loading, setLoading] = useState(true)
   const [showSettlement, setShowSettlement] = useState(false)
@@ -31,7 +51,7 @@ export default function Trip() {
 
     const fetchData = async () => {
       const { data: tripData, error: tripError } = await supabase
-        .from('trips')
+        .from('tables')
         .select()
         .eq('id', id)
         .single()
@@ -43,21 +63,13 @@ export default function Trip() {
 
       setTrip(tripData)
 
-      const [{ data: participantData }, { data: expenseData }] = await Promise.all([
-        supabase
-          .from('trip_participants')
-          .select()
-          .eq('trip_id', id)
-          .order('created_at', { ascending: true }),
-        supabase
-          .from('trip_expenses')
-          .select()
-          .eq('trip_id', id)
-          .order('created_at', { ascending: true }),
-      ])
+      const { data: rowData } = await supabase
+        .from('participants')
+        .select()
+        .eq('table_id', id)
+        .order('created_at', { ascending: true })
 
-      setPeople(participantData || [])
-      setExpenses(expenseData || [])
+      setRows(rowData || [])
       setLoading(false)
     }
 
@@ -67,31 +79,20 @@ export default function Trip() {
       .channel(`trip-${id}`)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'trip_participants', filter: `trip_id=eq.${id}` },
+        { event: '*', schema: 'public', table: 'participants', filter: `table_id=eq.${id}` },
         (payload) => {
           if (payload.eventType === 'INSERT') {
-            setPeople((prev) => {
-              const row = payload.new as TripParticipantRow
+            setRows((prev) => {
+              const row = payload.new as ParticipantRow
               if (prev.find((p) => p.id === row.id)) return prev
               return [...prev, row]
             })
+          } else if (payload.eventType === 'UPDATE') {
+            setRows((prev) =>
+              prev.map((p) => (p.id === (payload.new as ParticipantRow).id ? (payload.new as ParticipantRow) : p))
+            )
           } else if (payload.eventType === 'DELETE') {
-            setPeople((prev) => prev.filter((p) => p.id !== (payload.old as TripParticipantRow).id))
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'trip_expenses', filter: `trip_id=eq.${id}` },
-        (payload) => {
-          if (payload.eventType === 'INSERT') {
-            setExpenses((prev) => {
-              const row = payload.new as TripExpenseRow
-              if (prev.find((e) => e.id === row.id)) return prev
-              return [...prev, row]
-            })
-          } else if (payload.eventType === 'DELETE') {
-            setExpenses((prev) => prev.filter((e) => e.id !== (payload.old as TripExpenseRow).id))
+            setRows((prev) => prev.filter((p) => p.id !== (payload.old as ParticipantRow).id))
           }
         }
       )
@@ -102,22 +103,28 @@ export default function Trip() {
     }
   }, [id, navigate])
 
+  const { people, expenses } = useMemo(() => parseRows(rows), [rows])
+
   const addPerson = async () => {
     const name = newName.trim()
     if (!name || !id) return
     const { error } = await supabase
-      .from('trip_participants')
-      .insert({ trip_id: id, name })
+      .from('participants')
+      .insert({ table_id: id, name: PERSON_PREFIX + name, amount: 0 })
     if (!error) {
       setNewName('')
       nameInputRef.current?.focus()
     }
   }
 
-  const removePerson = async (participantId: string) => {
-    setPeople((prev) => prev.filter((p) => p.id !== participantId))
-    setExpenses((prev) => prev.filter((e) => e.participant_id !== participantId))
-    await supabase.from('trip_participants').delete().eq('id', participantId)
+  const removePerson = async (personId: string) => {
+    // Drop the person row + all expense rows that referenced them.
+    const expenseIdsToDrop = expenses.filter((e) => e.payerId === personId).map((e) => e.id)
+    setRows((prev) => prev.filter((r) => r.id !== personId && !expenseIdsToDrop.includes(r.id)))
+    await supabase.from('participants').delete().eq('id', personId)
+    if (expenseIdsToDrop.length > 0) {
+      await supabase.from('participants').delete().in('id', expenseIdsToDrop)
+    }
   }
 
   const openExpenseForm = () => {
@@ -132,12 +139,12 @@ export default function Trip() {
     if (!id || !expensePayer) return
     const amount = parseFloat(expenseAmount)
     if (!Number.isFinite(amount) || amount <= 0) return
+    const description = expenseDesc.trim()
     const { error } = await supabase
-      .from('trip_expenses')
+      .from('participants')
       .insert({
-        trip_id: id,
-        participant_id: expensePayer,
-        description: expenseDesc.trim(),
+        table_id: id,
+        name: `${EXPENSE_PREFIX}${expensePayer}|${description}`,
         amount,
       })
     if (!error) {
@@ -148,8 +155,8 @@ export default function Trip() {
   }
 
   const removeExpense = async (expenseId: string) => {
-    setExpenses((prev) => prev.filter((e) => e.id !== expenseId))
-    await supabase.from('trip_expenses').delete().eq('id', expenseId)
+    setRows((prev) => prev.filter((r) => r.id !== expenseId))
+    await supabase.from('participants').delete().eq('id', expenseId)
   }
 
   const copyLink = () => {
@@ -161,17 +168,15 @@ export default function Trip() {
   const settlementParticipants = useMemo(() => {
     return people.map((p) => ({
       name: p.name,
-      amount: expenses
-        .filter((e) => e.participant_id === p.id)
-        .reduce((sum, e) => sum + Number(e.amount), 0),
+      amount: expenses.filter((e) => e.payerId === p.id).reduce((s, e) => s + e.amount, 0),
     }))
   }, [people, expenses])
 
   const total = settlementParticipants.reduce((sum, p) => sum + p.amount, 0)
   const perPerson = people.length > 0 ? total / people.length : 0
 
-  const personName = (participantId: string) =>
-    people.find((p) => p.id === participantId)?.name ?? '—'
+  const personName = (personId: string) =>
+    people.find((p) => p.id === personId)?.name ?? '—'
 
   if (loading) {
     return (
@@ -247,8 +252,8 @@ export default function Trip() {
           <div className="flex flex-wrap gap-1.5 mb-4">
             {people.map((p) => {
               const paid = expenses
-                .filter((e) => e.participant_id === p.id)
-                .reduce((s, e) => s + Number(e.amount), 0)
+                .filter((e) => e.payerId === p.id)
+                .reduce((s, e) => s + e.amount, 0)
               return (
                 <div
                   key={p.id}
@@ -290,18 +295,18 @@ export default function Trip() {
                   className="flex items-center gap-2.5 bg-surface-light rounded-xl px-3 py-3 border border-white/5"
                 >
                   <div className="w-9 h-9 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-bold shrink-0">
-                    {personName(e.participant_id).charAt(0).toUpperCase()}
+                    {personName(e.payerId).charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="font-medium text-[15px] truncate">
                       {e.description || t('trip.expenses')}
                     </div>
                     <div className="text-xs text-gray-400 truncate">
-                      {personName(e.participant_id)} {t('trip.paid')}
+                      {personName(e.payerId)} {t('trip.paid')}
                     </div>
                   </div>
                   <span className="font-bold font-mono text-sm shrink-0">
-                    {Number(e.amount).toFixed(2)}
+                    {e.amount.toFixed(2)}
                   </span>
                   <button
                     onClick={() => removeExpense(e.id)}
@@ -436,9 +441,8 @@ export default function Trip() {
           onCloseTable={async () => {
             if (!id) return
             if (!confirm(t('trip.closeConfirm'))) return
-            await supabase.from('trip_expenses').delete().eq('trip_id', id)
-            await supabase.from('trip_participants').delete().eq('trip_id', id)
-            await supabase.from('trips').delete().eq('id', id)
+            await supabase.from('participants').delete().eq('table_id', id)
+            await supabase.from('tables').delete().eq('id', id)
             navigate('/')
           }}
         />
