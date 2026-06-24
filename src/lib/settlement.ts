@@ -9,6 +9,21 @@ export type Participant = {
   amount: number
 }
 
+export type SettlementOptions = {
+  /**
+   * Transfers strictly below this amount (in the same units as `amount`) are
+   * dropped instead of shown. Splits stay exact — we just don't bother with
+   * trivial payments. A person left out of one such transfer ends up under
+   * `minTransfer` from settled (up to ~2x that in the rare case both of their
+   * transactions were tiny). Set to 0 for an exact, fully-reconciling result.
+   */
+  minTransfer?: number
+}
+
+// Don't bother with sub-unit payments by default ("keep the change"). Tunable
+// per call; pass { minTransfer: 0 } for an exact settlement.
+const DEFAULT_MIN_TRANSFER = 1
+
 type Balance = { name: string; balance: number } // balance in integer cents
 
 // People with a non-zero balance whose net debts can be partitioned into more
@@ -19,23 +34,35 @@ type Balance = { name: string; balance: number } // balance in integer cents
 const OPTIMAL_MAX = 15
 
 /**
- * Compute who pays whom to settle the table, using as FEW transfers as
- * possible.
+ * Compute who pays whom to settle the table, minimizing how many transactions
+ * each person has to make.
  *
  * Everyone pays an equal share of the total. A person's balance is what they
  * paid minus their fair share: positive => they're owed money, negative =>
- * they owe. The set of balances always sums to zero.
+ * they owe. Balances always sum to zero.
  *
- * Minimizing the number of transfers is the "optimal account balancing"
- * problem. The minimum transfer count is
- *     (# of non-zero balances) - (max # of subgroups that each sum to zero)
- * because every zero-sum subgroup of k people can be settled internally with
- * exactly k-1 transfers, and a group with no zero-sum subset can't do better.
- * We find that maximum partition with a subset DP, then settle each subgroup
- * greedily.
+ * Strategy:
+ *  1. Partition the non-zero balances into the maximum number of zero-sum
+ *     subgroups (subset DP). This keeps the total number of transfers minimal
+ *     and isolates people who happen to cancel out into their own small group.
+ *  2. Settle each subgroup as a *chain* (money relays along a path) rather than
+ *     routing everyone through one person. In a chain every participant is in
+ *     at most TWO transactions — the provable minimum for a group that can't be
+ *     split further — instead of one person becoming a hub with many.
+ *  3. Drop transfers below `minTransfer` so trivial payments don't show up.
+ *
+ * Note: chain settling means money can pass *through* a person (they receive
+ * from one neighbour and forward it to the next), so a transfer amount can
+ * exceed that person's own debt. That's the cost of keeping everyone's
+ * transaction count down.
  */
-export function calculateSettlement(participants: Participant[]): Payment[] {
+export function calculateSettlement(
+  participants: Participant[],
+  options: SettlementOptions = {}
+): Payment[] {
   if (participants.length < 2) return []
+
+  const minTransferCents = Math.round((options.minTransfer ?? DEFAULT_MIN_TRANSFER) * 100)
 
   // Work in integer cents so equality / zero-sum checks are exact. Floating
   // point can't reliably detect that a subset of debts cancels out.
@@ -66,8 +93,12 @@ export function calculateSettlement(participants: Participant[]): Payment[] {
     nonZero.length <= OPTIMAL_MAX ? partitionIntoZeroSumGroups(nonZero) : [nonZero]
 
   const payments: Payment[] = []
-  for (const group of groups) settleGroup(group, payments)
-  return payments
+  for (const group of groups) settleGroupAsChain(group, payments)
+
+  // Drop trivial transfers (splits stay exact; we just don't list tiny ones).
+  return minTransferCents > 0
+    ? payments.filter((p) => Math.round(p.amount * 100) >= minTransferCents)
+    : payments
 }
 
 /**
@@ -76,7 +107,9 @@ export function calculateSettlement(participants: Participant[]): Payment[] {
  *
  * dp[mask] = max number of zero-sum subgroups the people in `mask` split into.
  * Only zero-sum masks are reachable; for each we try every sub-subset that
- * contains the lowest set bit and itself sums to zero.
+ * contains the lowest set bit and itself sums to zero. Because the partition is
+ * maximal, no resulting group has a zero-sum proper subset (it's "atomic"), so
+ * a chain settles it in exactly size-1 transfers with max degree 2.
  */
 function partitionIntoZeroSumGroups(balances: Balance[]): Balance[][] {
   const m = balances.length
@@ -129,32 +162,40 @@ function partitionIntoZeroSumGroups(balances: Balance[]): Balance[][] {
 }
 
 /**
- * Settle one zero-sum group greedily: repeatedly have the biggest debtor pay
- * the biggest creditor. For a group with no zero-sum subset this yields the
- * minimum k-1 transfers; balances are integer cents so it ends exactly at zero.
+ * Settle one zero-sum group as a chain so nobody becomes a hub.
+ *
+ * People are interleaved (creditor, debtor, creditor, …) to keep the running
+ * carry small, then each person passes their accumulated imbalance to the next.
+ * Each person transacts only with their two neighbours => at most 2 payments
+ * each; the endpoints get just 1. Balances are integer cents so it ends exactly
+ * at zero.
  */
-function settleGroup(group: Balance[], out: Payment[]): void {
-  const debtors = group
-    .filter((b) => b.balance < 0)
-    .map((b) => ({ name: b.name, amount: -b.balance }))
-    .sort((a, b) => b.amount - a.amount)
-  const creditors = group
-    .filter((b) => b.balance > 0)
-    .map((b) => ({ name: b.name, amount: b.balance }))
-    .sort((a, b) => b.amount - a.amount)
+function settleGroupAsChain(group: Balance[], out: Payment[]): void {
+  const creditors = group.filter((b) => b.balance > 0).sort((a, b) => b.balance - a.balance)
+  const debtors = group.filter((b) => b.balance < 0).sort((a, b) => a.balance - b.balance)
 
-  let i = 0
-  let j = 0
-  while (i < debtors.length && j < creditors.length) {
-    const amount = Math.min(debtors[i].amount, creditors[j].amount)
-    out.push({
-      from: debtors[i].name,
-      to: creditors[j].name,
-      amount: amount / 100,
-    })
-    debtors[i].amount -= amount
-    creditors[j].amount -= amount
-    if (debtors[i].amount === 0) i++
-    if (creditors[j].amount === 0) j++
+  // Interleave to keep the relayed amounts as small as possible.
+  const order: Balance[] = []
+  let ci = 0
+  let di = 0
+  let takeCreditor = true
+  while (ci < creditors.length || di < debtors.length) {
+    if (takeCreditor && ci < creditors.length) order.push(creditors[ci++])
+    else if (di < debtors.length) order.push(debtors[di++])
+    else order.push(creditors[ci++])
+    takeCreditor = !takeCreditor
+  }
+
+  let carry = 0
+  for (let i = 0; i < order.length - 1; i++) {
+    const amount = order[i].balance + carry
+    if (amount > 0) {
+      // order[i] is net owed `amount` => the next person pays them.
+      out.push({ from: order[i + 1].name, to: order[i].name, amount: amount / 100 })
+    } else if (amount < 0) {
+      // order[i] net owes `-amount` => they pay the next person.
+      out.push({ from: order[i].name, to: order[i + 1].name, amount: -amount / 100 })
+    }
+    carry = amount
   }
 }
