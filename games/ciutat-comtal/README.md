@@ -36,6 +36,21 @@ npx serve games/ciutat-comtal
   down the Diagonal, a van theft with a 3-star escape, and a pursuit to Montjuïc castle),
   plus 20 hidden panot collectibles.
 
+## Rendering
+
+The look recreates mid-2000s console rendering techniques. Every texture is original and generated in code.
+
+- A post-processing pass applies a warm colour grade, bloom, a frame-feedback "trails" blur, a vignette and film grain.
+  Trails turn off when the viewer prefers reduced motion or when the game drops to its low-quality mode.
+- A sky dome shader draws a gradient, the sun disk with its glow, and drifting clouds. Fog blends distant buildings into the horizon haze.
+- Street lamps and car lights get additive glows (coronas), with pools of light on the ground at night and a headlight on the player's car.
+- Facades are textured with balconies, shutters, AC units and grime streaks. A shopfront band runs along the ground floor
+  (shops, bars, graffitied metal shutters, entrance portals), and building bases are darkened to fake ambient occlusion.
+  Roads have worn asphalt detail and faded markings.
+- Plane trees, palms and pines are drawn as transparent leaf cards, and they cast cut-out shadows.
+- Cars have extruded bodies with wheel arches, glass cabins, bumpers, chrome rims and reflective paint.
+  The water has animated ripples and reflects the sky.
+
 ## Controls
 
 | Key | Action |
