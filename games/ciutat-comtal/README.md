@@ -50,6 +50,12 @@ The look recreates mid-2000s console rendering techniques. Every texture is orig
 - Plane trees, palms and pines are drawn as transparent leaf cards, and they cast cut-out shadows.
 - Cars have extruded bodies with wheel arches, glass cabins, bumpers, chrome rims and reflective paint.
   The water has animated ripples and reflects the sky.
+- People are jointed: hips, knees, shoulders and elbows, with a walk cycle that bends the knees, bobs and twists the body.
+  Each person's torso, head and hair are merged into one vertex-coloured mesh to keep draw calls down.
+  The crowd mixes locals, office workers, tourists and older residents, with varied build, height, clothes,
+  hairstyles and accessories (backpacks, bags, caps, sunglasses).
+- Buildings have stone cornices and ledges. Streets have benches, coloured recycling containers and Bicing bike docks.
+- The pause menu has a graphics setting (alts / mitjans / baixos). Unless you pick one yourself, the game lowers it automatically below 30 fps.
 
 ## Controls
 
