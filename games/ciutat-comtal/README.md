@@ -1,0 +1,51 @@
+# Ciutat Comtal
+
+An original open-world action game set in a stylised, low-poly Barcelona. It runs in the browser
+with Three.js r128 (loaded from cdnjs). Every model, texture, sound and music track is generated
+in code, so there are no asset files.
+
+This folder sits outside the tablesplit app. Vite does not build it, ESLint (which only covers
+`*.ts` / `*.tsx`) does not lint it, and Netlify does not deploy it.
+
+## Run locally
+
+Any static file server works:
+
+```bash
+npx serve games/ciutat-comtal
+```
+
+## What is in it
+
+- **City:** the Eixample grid with chamfered octagonal blocks and alternating one-way streets,
+  cut by the Diagonal. Ciutat Vella (Raval, Gòtic, Born) with procedurally generated alleys,
+  La Rambla with a Miró-style pavement mosaic, Barceloneta's long thin blocks, the beach,
+  the port, Montjuïc with its castle, Collserola/Tibidabo, and Park Güell. Pavements use the
+  *panot* flower tile.
+- **Landmarks:** Sagrada Família (with its crane), Torre Glòries, Arc de Triomf, Sant Pau,
+  the Cathedral, the Columbus column, the beach towers and golden fish, the sail hotel,
+  and a stadium.
+- **Systems:** walking, sprinting, jumping and swimming. Arcade driving with handbrake drifts,
+  jumps, curb physics and crash damage, smoke, fire and explosions. Stealing cars by force.
+  Traffic AI that obeys the one-way grid. Pedestrians that panic. Punching and a pistol with
+  auto-aim. A 0–5 star wanted level: police pursue along the grid, ram you, shoot from 2 stars
+  and arrest you when you are stopped. Pinta Ràpid garages, hospital and arrest respawns,
+  a day/night cycle, a rotating radar, a full map, two procedurally generated radio stations,
+  touch controls, and a localStorage save.
+- **Story:** six missions (homecoming, timed deliveries, a pickpocket chase, a checkpoint race
+  down the Diagonal, a van theft with a 3-star escape, and a pursuit to Montjuïc castle),
+  plus 20 hidden panot collectibles.
+
+## Controls
+
+| Key | Action |
+| --- | --- |
+| W A S D / arrows | Walk / drive |
+| Mouse (click to capture) | Camera |
+| F | Enter or exit a vehicle; takes it by force if someone is driving |
+| Shift / Space | Sprint / jump (handbrake in a vehicle) |
+| Click / Ctrl | Punch or shoot |
+| Q | Switch weapon |
+| R / H | Radio station / horn |
+| M / P | Map / pause |
+| C / N | Camera distance / mute |

@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Ciutat Comtal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Bungee+Shade&family=Barlow+Condensed:wght@500;600;700&display=swap">
+<style>
+/* Layout: full-bleed WebGL city; HUD pinned to the corners like a dashboard; title card floats left over a live flyover. Single committed night-blue look. */
+:root{
+  --night:#0c1420;
+  --panel:rgba(10,16,26,.86);
+  --groc:#f2c230;      /* senyera yellow: stars, accents */
+  --vermell:#d9412f;   /* senyera red: health, failure */
+  --verd:#86d98f;      /* money */
+  --mar:#5fb2e0;       /* water, radio, info */
+  --text:#f4efe4;
+  --muted:#a7b0bd;
+  --f-display:'Bungee',Impact,'Arial Black',sans-serif;
+  --f-shade:'Bungee Shade','Bungee',Impact,sans-serif;
+  --f-text:'Barlow Condensed','Arial Narrow',Arial,sans-serif;
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--night);color:var(--text);font-family:var(--f-text);-webkit-user-select:none;user-select:none}
+#game{position:fixed;inset:0}
+#game canvas{display:block;width:100%;height:100%;touch-action:none;outline:none}
+.ol{text-shadow:2px 0 #000,-2px 0 #000,0 2px #000,0 -2px #000,2px 2px #000,-2px -2px #000,2px -2px #000,-2px 2px #000}
+#hud{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity .4s}
+#hud.on{opacity:1}
+#hud-tr{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));right:calc(14px + env(safe-area-inset-right,0px));display:flex;gap:10px;align-items:flex-start}
+#weapon{width:64px;height:64px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#30425c,#121a26);border:3px solid #000;position:relative;box-shadow:0 0 0 2px rgba(255,255,255,.12)}
+#weapon canvas{width:100%;height:100%}
+#ammo{position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);font:15px var(--f-display);color:var(--text)}
+#stack{display:grid;justify-items:end;gap:3px;min-width:150px}
+#clock{font:26px/1 var(--f-display);color:var(--text);letter-spacing:.04em}
+#hbar{width:150px;height:12px;background:#3a1210;border:2px solid #000;position:relative}
+#hbar i{position:absolute;inset:0;right:auto;width:100%;background:linear-gradient(#ef5a45,var(--vermell));transition:width .2s}
+#money{font:24px/1 var(--f-display);color:var(--verd);letter-spacing:.03em;font-variant-numeric:tabular-nums}
+#stars{font:26px/1 var(--f-display);letter-spacing:2px;color:rgba(0,0,0,.45)}
+#stars b{color:var(--groc);font-weight:400}
+#stars.blink b{animation:blink .5s steps(1) infinite}
+@keyframes blink{50%{color:rgba(0,0,0,.35)}}
+#mtimer{font:24px/1 var(--f-display);color:var(--text)}
+#radar{position:absolute;left:calc(16px + env(safe-area-inset-left,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));width:180px;height:180px}
+#zone{position:absolute;right:calc(22px + env(safe-area-inset-right,0px));bottom:calc(60px + env(safe-area-inset-bottom,0px));font:clamp(26px,4.4vw,46px)/1 var(--f-shade);color:var(--groc);opacity:0;transition:opacity .8s;text-align:right;max-width:70vw}
+#vehname{position:absolute;right:calc(22px + env(safe-area-inset-right,0px));bottom:calc(112px + env(safe-area-inset-bottom,0px));font:24px/1 var(--f-display);color:var(--mar);opacity:0;transition:opacity .6s}
+#zone.on,#vehname.on,#radiolab.on{opacity:1}
+#speedo{position:absolute;left:calc(206px + env(safe-area-inset-left,0px));bottom:calc(20px + env(safe-area-inset-bottom,0px));font:22px/1 var(--f-display);color:var(--text)}
+#speedo small{font:14px var(--f-text);color:var(--muted);margin-left:3px}
+#radiolab{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);font:22px/1 var(--f-display);color:var(--mar);opacity:0;transition:opacity .6s;white-space:nowrap}
+#subtitle{position:absolute;left:50%;bottom:calc(150px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:min(760px,86vw);text-align:center;font:600 clamp(18px,2.4vw,24px)/1.25 var(--f-text);color:var(--text)}
+#subtitle b{color:var(--groc);font-weight:700}
+#objective{position:absolute;left:50%;bottom:calc(110px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:min(760px,86vw);text-align:center;font:600 clamp(16px,2.1vw,21px)/1.25 var(--f-text);color:#e8dcb5}
+#bigmsg{position:absolute;left:0;right:0;top:30%;text-align:center;opacity:0;transition:opacity .5s}
+#bigmsg.on{opacity:1}
+#bigmsg b{display:block;font:clamp(34px,7vw,74px)/1 var(--f-shade);color:var(--groc)}
+#bigmsg b.bad{color:var(--vermell)}
+#bigmsg small{display:block;margin-top:8px;font:600 clamp(16px,2.4vw,24px) var(--f-text);color:var(--text);letter-spacing:.12em;text-transform:uppercase}
+#toast{position:absolute;top:calc(110px + env(safe-area-inset-top,0px));right:calc(16px + env(safe-area-inset-right,0px));max-width:300px;background:var(--panel);border-left:4px solid var(--groc);padding:10px 14px;font:600 17px/1.3 var(--f-text);opacity:0;transition:opacity .4s}
+#toast.on{opacity:1}
+#fade{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .6s}
+#fade.on{opacity:1}
+#fullmap{position:fixed;inset:0;width:100%;height:100%;background:rgba(6,10,16,.94)}
+#title,#pause{position:fixed;inset:0;display:flex;align-items:center;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));background:linear-gradient(90deg,rgba(6,10,18,.92) 0%,rgba(6,10,18,.72) 46%,rgba(6,10,18,0) 80%)}
+.card{width:min(520px,100%);display:grid;gap:18px;padding-block:24px;margin-left:clamp(0px,5vw,72px);max-height:100%;overflow:auto;box-sizing:border-box}
+.trencadis{height:10px;background:repeating-linear-gradient(90deg,#2f6db5 0 18px,#e4b52a 18px 31px,#d9472b 31px 47px,#3c9a5f 47px 60px,#f4f1e8 60px 68px,#68b8d8 68px 85px);clip-path:polygon(0 30%,4% 0,9% 40%,15% 5%,22% 35%,30% 0,38% 30%,47% 8%,55% 40%,63% 0,72% 32%,80% 6%,88% 38%,95% 4%,100% 30%,100% 100%,0 100%)}
+h1{margin:0;font:clamp(40px,8vw,72px)/.95 var(--f-shade);color:var(--groc);text-wrap:balance}
+.tag{margin:0;font:600 clamp(18px,2.4vw,22px)/1.3 var(--f-text);color:var(--text);max-width:42ch}
+.btns{display:flex;flex-wrap:wrap;gap:10px}
+button{font:18px var(--f-display);padding:12px 18px;border:3px solid #000;background:var(--groc);color:#111;cursor:pointer;box-shadow:4px 4px 0 #000;letter-spacing:.02em}
+button.alt{background:#e9e2d0}
+button:hover{transform:translate(-1px,-1px);box-shadow:5px 5px 0 #000}
+button:focus-visible{outline:3px solid var(--mar);outline-offset:3px}
+button[disabled]{opacity:.45;cursor:default}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font:500 16px/1.35 var(--f-text);color:var(--muted)}
+.keys kbd{font:13px var(--f-display);color:var(--text);background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);padding:2px 6px;white-space:nowrap;justify-self:start}
+.small{font:500 15px/1.4 var(--f-text);color:var(--muted);margin:0}
+#title-status{color:var(--groc)}
+#touch{position:fixed;inset:0;pointer-events:none}
+#stick{position:absolute;left:calc(24px + env(safe-area-inset-left,0px));bottom:calc(210px + env(safe-area-inset-bottom,0px));width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.25);pointer-events:auto;touch-action:none}
+#stick i{position:absolute;left:35px;top:35px;width:50px;height:50px;border-radius:50%;background:rgba(242,194,48,.75)}
+#tbtns{position:absolute;right:calc(16px + env(safe-area-inset-right,0px));bottom:calc(24px + env(safe-area-inset-bottom,0px));display:grid;grid-template-columns:repeat(2,64px);gap:10px;pointer-events:auto}
+#tbtns button{width:64px;height:64px;padding:0;border-radius:50%;font-size:12px;box-shadow:none;background:rgba(242,194,48,.8)}
+#tbtns button.alt{background:rgba(233,226,208,.75)}
+@media (max-width:560px){
+  #radar{width:130px;height:130px}
+  #speedo{left:calc(156px + env(safe-area-inset-left,0px))}
+  #stack{min-width:110px}#hbar{width:110px}#weapon{width:50px;height:50px}
+  #clock{font-size:20px}#money{font-size:19px}#stars{font-size:20px}
+  #subtitle{bottom:auto;top:calc(150px + env(safe-area-inset-top,0px))}
+  #objective{bottom:auto;top:calc(214px + env(safe-area-inset-top,0px))}
+  #toast{top:auto;bottom:calc(170px + env(safe-area-inset-bottom,0px))}
+  #zone{bottom:calc(170px + env(safe-area-inset-bottom,0px))}
+}
+@media (prefers-reduced-motion:reduce){#stars.blink b{animation:none}}
+</style>
+</head>
+<body>
+
+<div id="game"></div>
+
+<div id="hud">
+  <div id="hud-tr">
+    <div id="weapon"><canvas id="wicon" width="128" height="128"></canvas><span id="ammo" class="ol"></span></div>
+    <div id="stack">
+      <div id="clock" class="ol">10:00</div>
+      <div id="hbar"><i></i></div>
+      <div id="money" class="ol">€00000000</div>
+      <div id="stars" class="ol"></div>
+      <div id="mtimer" class="ol" hidden></div>
+    </div>
+  </div>
+  <canvas id="radar" width="360" height="360"></canvas>
+  <div id="speedo" class="ol" hidden></div>
+  <div id="radiolab" class="ol"></div>
+  <div id="vehname" class="ol"></div>
+  <div id="zone" class="ol"></div>
+  <div id="objective" class="ol"></div>
+  <div id="subtitle" class="ol"></div>
+  <div id="bigmsg"><b class="ol"></b><small class="ol"></small></div>
+  <div id="toast"></div>
+</div>
+<div id="fade"></div>
+<canvas id="fullmap" hidden></canvas>
+
+<div id="touch" hidden>
+  <div id="stick"><i></i></div>
+  <div id="tbtns">
+    <button id="t-fire" type="button">COP</button>
+    <button id="t-enter" type="button">ENTRA</button>
+    <button id="t-jump" type="button" class="alt">SALT</button>
+    <button id="t-map" type="button" class="alt">MAPA</button>
+  </div>
+</div>
+
+<div id="title">
+  <div class="card">
+    <div class="trencadis"></div>
+    <h1>Ciutat Comtal</h1>
+    <p class="tag">Nil Ferrer comes home to Barcelona after six years away. A developer wants his family's bar on the seafront. The city is open: walk it, drive it, steal from it, and decide who owns it.</p>
+    <div class="btns">
+      <button id="b-new" type="button">Nova partida</button>
+      <button id="b-cont" type="button" class="alt" hidden>Continua</button>
+    </div>
+    <p class="small" id="title-status">Building the city…</p>
+    <div class="keys">
+      <kbd>W A S D</kbd><span>Walk / drive</span>
+      <kbd>Mouse</kbd><span>Look around (click the city to capture the mouse)</span>
+      <kbd>F</kbd><span>Get in or out of a vehicle, take one by force</span>
+      <kbd>Shift / Space</kbd><span>Sprint / jump, handbrake when driving</span>
+      <kbd>Click / Ctrl</kbd><span>Punch or shoot · Q switches weapon</span>
+      <kbd>R · H</kbd><span>Change radio station · horn</span>
+      <kbd>M · P</kbd><span>City map · pause</span>
+    </div>
+    <p class="small">Yellow beams on the radar are story missions. 20 hidden <em>panots</em> (the flower tile on every Barcelona pavement) are scattered across the city. Pinta Ràpid garages clear your wanted level for €100.</p>
+  </div>
+</div>
+
+<div id="pause" hidden>
+  <div class="card">
+    <div class="trencadis"></div>
+    <h1>Pausa</h1>
+    <p class="tag" id="pause-stats"></p>
+    <div class="btns">
+      <button id="b-resume" type="button">Continua</button>
+      <button id="b-map" type="button" class="alt">Mapa</button>
+      <button id="b-mute" type="button" class="alt">So: sí</button>
+    </div>
+    <p class="small">Progress saves automatically after every mission and panot.</p>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
