@@ -1520,6 +1520,7 @@ function onKey(code) {
   else if (code === 'KeyH' && player.car) { sfx.horn(); scarePeds(player.car.pos.x, player.car.pos.z, 14); }
   else if (code === 'KeyC') cam.dist = (cam.dist + 1) % 3;
   else if (code === 'KeyN') toggleMute();
+  else if (code === 'KeyI') toggleControls();
 }
 const cv = renderer.domElement;
 cv.addEventListener('mousedown', e => {
@@ -2575,7 +2576,50 @@ function updateAlarms(dt) {
     if (v.alarmB < 0 && AU.ctx) { v.alarmB = 0.42; const d = Math.hypot(v.pos.x - player.pos.x, v.pos.z - player.pos.z); if (d < 90) tone(AU.ctx.currentTime, (v.alarmF = v.alarmF === 880 ? 660 : 880), 0.3, 'square', 0.05 * clamp(1 - d / 90, 0, 1)); }
   }
 }
+// ---------- on-screen controls card and context prompts ----------
+let controlsOn = true, ctrlKey = '';
+try { controlsOn = localStorage.getItem('ciutat-comtal-controls') !== 'off'; } catch (e) { /* storage unavailable */ }
+function toggleControls() { controlsOn = !controlsOn; try { localStorage.setItem('ciutat-comtal-controls', controlsOn ? 'on' : 'off'); } catch (e) { /* ignore */ } ctrlKey = ''; updateControls(); }
+const K = k => `<kbd class="k">${k}</kbd>`;
+function updateControls() {
+  const card = $('controls'), tab = $('controls-tab');
+  const mode = player.car ? 'car' : 'foot', w = player.weapon, weapons = 1 + (player.hasBat ? 1 : 0) + (player.hasPistol && player.ammo > 0 ? 1 : 0);
+  const key = [controlsOn, mode, w, weapons, wantedLevel() > 0].join('|');
+  if (key === ctrlKey) return; ctrlKey = key;
+  card.hidden = !controlsOn; tab.hidden = controlsOn; if (!controlsOn) return;
+  const atk = w === 2 ? 'Swing the bat' : w === 1 ? 'Shoot (aims for you)' : 'Punch · click 3× = jab, cross, kick';
+  const rows = mode === 'car' ? [
+    ['W', 'Accelerate'], ['S', 'Brake, then reverse'], ['A D', 'Steer'], ['Space', 'Handbrake / drift'], ['F', 'Get out'], ['H', 'Horn'], ['R', 'Change radio'], ['C', 'Camera distance'], ['M  P', 'Map · pause'],
+  ] : [
+    ['W A S D', 'Walk'], ['Shift', 'Sprint'], ['Space', 'Jump'], ['Mouse', 'Look (click to capture)'], ['Click', atk], ['Q', weapons > 1 ? 'Switch weapon' : 'Switch weapon (find one first)', weapons < 2], ['F', 'Get in a car'], ['M  P', 'Map · pause'],
+  ];
+  if (wantedLevel() > 0) rows.push(['', mode === 'car' ? 'Wanted: get out of sight or find a Pinta Ràpid' : 'Wanted: run, or get a car']);
+  rows.push(['I', 'Hide this card']);
+  $('controls-mode').textContent = mode === 'car' ? 'Driving' : 'On foot';
+  $('controls-list').innerHTML = rows.map(([k, t, dim]) => `<li${dim ? ' class="dim"' : ''}>${k ? K(k) : '<span></span>'}<span>${t}</span></li>`).join('');
+}
+let promptKey = '';
+function setPrompt(html) { if (html === promptKey) return; promptKey = html; const el = $('prompt'); el.hidden = !html; if (html) el.innerHTML = html; }
+function updatePrompt() {
+  if (player.dead || game.state !== 'play') return setPrompt('');
+  const fk = coarse ? K('ENTRA') : K('F');
+  if (player.car) {
+    const v = player.car;
+    for (const s2 of SPRAY) if (d2(v.pos.x, v.pos.z, s2[0], s2[1]) < 30 * 30 && (wantedLevel() > 0 || v.health < v.t.hp * 0.95)) return setPrompt(`Pinta Ràpid: drive into the garage door to respray and repair (€100)`);
+    if (v.burn >= 0) return setPrompt(`${fk} Get out now, it's on fire!`);
+    return setPrompt('');
+  }
+  let best = null, bd = 4.6 * 4.6;
+  for (const v of vehicles) { if (v.dead || v.burn >= 0) continue; const d = d2(v.pos.x, v.pos.z, player.pos.x, player.pos.z); if (d < bd && Math.abs(v.pos.y - player.pos.y) < 2.5) { bd = d; best = v; } }
+  if (best) return setPrompt(best.driver === 'ai' || best.driver === 'cop' ? (Math.abs(best.speed) > 6 ? '' : `${fk} Pull the driver out of the ${best.t.name}${best.driver === 'cop' ? ' (instant 2 stars)' : ''}`) : `${fk} Get in the ${best.t.name}`);
+  const g = giverPos(); if (g && !mission.run && d2(g[0], g[1], player.pos.x, player.pos.z) < 14 * 14) return setPrompt(wantedLevel() > 0 ? 'Lose the police before starting this job' : `Step into the yellow light to start <b>${MISSIONS[game.mission].title}</b>`);
+  const pr = propsNear(player.pos.x, player.pos.z, 2.2).find(q => !q.broken && d2(q.x, q.z, player.pos.x, player.pos.z) < 2.6 * 2.6);
+  if (pr) { const can = player.weapon === 2 || pr.k.melee === 'kick'; return setPrompt(can ? `${coarse ? K('COP') : K('Click')} ${player.weapon === 2 ? 'Smash it' : 'Third hit of the combo kicks it over'}` : 'Too sturdy for fists. Find the bat, or drive through it'); }
+  return setPrompt('');
+}
+let uiT = 0;
 function updateLife(dt) {
+  uiT -= dt; if (uiT <= 0) { uiT = 0.2; updateControls(); updatePrompt(); }
   updatePlayerAttack(dt); updateHeld(); updateProps(dt); updateBubbles(dt); updateEvents(dt); updateFootCops(); updatePerformers(dt);
   updateBirds(dt); updateFireworks(dt); updateAlarms(dt); buskerMusic();
 }
@@ -2902,14 +2946,15 @@ function drawFullmap() {
   leg.forEach(([c2, t], i) => { const y = H - (24 + i * 24) * u; g.fillStyle = c2; g.beginPath(); g.arc(32 * u, y - 5 * u, 7 * u, 0, TAU); g.fill(); g.fillStyle = '#f4efe4'; g.fillText(t, 48 * u, y); });
 }
 function openMap() { game.state = 'map'; $('fullmap').hidden = false; sizeFullmap(); drawFullmap(); if (document.exitPointerLock) document.exitPointerLock(); }
-function closeMap() { game.state = 'play'; $('fullmap').hidden = true; }
+function closeMap() { game.state = 'play'; $('fullmap').hidden = true; $('hud').classList.add('on'); }
 $('fullmap').addEventListener('click', closeMap);
 function pause() {
+  setPrompt(''); $('hud').classList.remove('on');
   game.state = 'pause'; $('pause').hidden = false; if (document.exitPointerLock) document.exitPointerLock();
   $('pause-stats').textContent = `€${player.money.toLocaleString('en')} · ${Math.min(game.mission, MISSIONS.length)} of ${MISSIONS.length} story jobs · ${game.panots.length} of 20 panots · ${district(player.pos.x, player.pos.z)}. Street record: ${game.stats.props} things smashed, ${game.stats.ko} people knocked down, ${game.stats.fights} brawls witnessed.`;
   $('b-resume').focus();
 }
-function resume() { game.state = 'play'; $('pause').hidden = true; cv.focus(); }
+function resume() { game.state = 'play'; $('pause').hidden = true; $('hud').classList.add('on'); cv.focus(); }
 function toggleMute() { AU.muted = !AU.muted; if (AU.master) AU.master.gain.value = AU.muted ? 0 : 0.7; $('b-mute').textContent = AU.muted ? 'So: no' : 'So: sí'; }
 $('b-resume').addEventListener('click', resume);
 $('b-map').addEventListener('click', () => { $('pause').hidden = true; openMap(); });

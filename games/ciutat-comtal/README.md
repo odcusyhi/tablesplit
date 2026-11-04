@@ -89,3 +89,4 @@ The look recreates mid-2000s console rendering techniques. Every texture is orig
 | R / H | Radio station / horn |
 | M / P | Map / pause |
 | C / N | Camera distance / mute |
+| I | Show or hide the on-screen controls card |
