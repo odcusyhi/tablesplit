@@ -40,6 +40,19 @@ npx serve games/ciutat-comtal
   down the Diagonal, a van theft with a 3-star escape, and a pursuit to Montjuïc castle),
   plus 20 hidden panot collectibles.
 
+## Getting around
+
+- **Llamp 600:** a sport motorbike, 0–174 km/h in 3 s, that leans into turns. It appears in traffic and parked.
+- **Bus Comtal:** a 12 m city bus in traffic. Take one and press **T** for the bus route: stop next to the shelters
+  (8 stops on the radar) to pick up the people waiting there. You're paid per stop and per passenger, with a €200 bonus for a full route.
+- **Boats:** speedboats (*Llanxa Ràpida*) and a slow tourist boat (*Gavina del Port*) moored along the Moll de la Fusta,
+  off the Barceloneta and on the beach. They only float on water, run aground at the shore, and leave a wake.
+  Wade in from the quay to board; get out at sea to swim.
+- **Telefèric:** cable car towers carry red cabins from the Barceloneta beach over the port up to Montjuïc.
+  Walk into the purple light (T on the radar) to ride for €5; the mouse looks around during the ride.
+- **Metro:** 8 stations (Catalunya, Drassanes, Barceloneta, Sagrada Família, Glòries, Diagonal, Espanya, Gràcia).
+  Walk down the stairs, pick a destination with a number key (€2), ride the tunnel and come out at the other station.
+
 ## Side jobs and shops
 
 - **Taxi fares:** in a Taxi Comtal, press **T**. Pick up the waving fare (blue blip) and drive them to their destination before the meter runs out.
@@ -125,6 +138,6 @@ The look recreates mid-2000s console rendering techniques. Every texture is orig
 | M / P | Map / pause |
 | C / N | Camera distance / mute |
 | I | Show or hide the on-screen controls card |
-| T | Start or stop a taxi or vigilante job (in a taxi or police car) |
-| 1–6 | Buy in a shop |
+| T | Start or stop a taxi, vigilante or bus-route job (in a taxi, police car or bus) |
+| 1–9 | Buy in a shop or pick a metro destination |
 | F3 | Performance readout |

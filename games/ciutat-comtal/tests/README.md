@@ -22,6 +22,9 @@ Set `THREE_JS=/path/to/three.min.cjs` to use a different copy.
 | `logic2.cjs` | Missions 3–6: race autopilot, wanted level and police, Pinta Ràpid, Torrent's route, explosions, map, pause |
 | `life.cjs` | Breakable props, punch combo, bat, street events, police on foot, pigeons, fireworks |
 | `acts.cjs`, `acts2.cjs` | Shops, armour, taxi, vigilante, races with rivals, rampage, helicopter, roadblocks, traffic lights, bumpers, saving |
+| `transport.cjs` | Motorbike, bus and bus route, boats (boarding, top speed, running aground, swimming out), cable car round trip, metro ride |
 | `ui.cjs`, `perf.cjs`, `skid.cjs` | Controls card and prompts, performance readout, skid marks |
 
 Run one with `node games/ciutat-comtal/tests/logic2.cjs`. Screenshots are written to `tests/out/`.
+
+Known flaky test: in `logic2.cjs` the mission 4 race autopilot drives blind at full speed. It sometimes rams enough cross-traffic to wreck its car. Re-run before treating that as a regression.
