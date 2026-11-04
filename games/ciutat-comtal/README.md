@@ -36,6 +36,25 @@ npx serve games/ciutat-comtal
   down the Diagonal, a van theft with a 3-star escape, and a pursuit to Montjuïc castle),
   plus 20 hidden panot collectibles.
 
+## Street life
+
+- **Breakables:** 665 lamp posts, 290 benches, 350 recycling containers, 224 Bicing bikes and 37 fire hydrants.
+  Cars smash through them (lamp posts tip over and their lights go out), and the bat or a kick breaks them.
+  Bullets knock things over or shoot out lamps, and explosions scatter whatever is nearby. Debris tumbles with physics.
+  A broken hydrant becomes a water geyser that launches cars. Broken props repair themselves after 90 s once you are far away.
+- **Fighting:** a punch-punch-kick combo where the kick floors the target, plus a baseball bat (one on the beach, one in El Raval).
+  People stagger when hit, and about one in five hits back. Hitting a car makes its driver get out and fight;
+  hitting a parked car sets off its alarm.
+- **Police on foot:** at a wanted level, officers get out of their cars when you are on foot. They chase and punch you,
+  shoot from two stars, and arrest you if they catch you.
+- **Street events** happen every 15–30 s near you: strangers start fights while onlookers gather and egg them on,
+  bag thieves run off chased by their victims (knock them down for a cash reward), and groups stand around chatting.
+- **La Rambla** has a living statue, a busker playing rumba you can hear as you approach, and a dancer.
+- **Ambient:** pigeon flocks on the plazas take off when you run or drive through them, or when there is gunfire.
+  Gulls circle over the sea, and fireworks go off over the Barceloneta every night from 22:00 to 01:00.
+- **Speech:** people shout in Catalan in speech bubbles, with a short voice blip.
+- **Stats:** the pause menu keeps a street record of things smashed, people knocked down and brawls witnessed.
+
 ## Rendering
 
 The look recreates mid-2000s console rendering techniques. Every texture is original and generated in code.
@@ -65,8 +84,8 @@ The look recreates mid-2000s console rendering techniques. Every texture is orig
 | Mouse (click to capture) | Camera |
 | F | Enter or exit a vehicle; takes it by force if someone is driving |
 | Shift / Space | Sprint / jump (handbrake in a vehicle) |
-| Click / Ctrl | Punch or shoot |
-| Q | Switch weapon |
+| Click / Ctrl | Punch combo (jab, cross, kick), swing the bat, or shoot |
+| Q | Switch weapon (fists, bat, pistol) |
 | R / H | Radio station / horn |
 | M / P | Map / pause |
 | C / N | Camera distance / mute |

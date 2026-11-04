@@ -591,7 +591,8 @@ function prism(wall, roof, poly, y0, y1, col, rcol, opt) {
     const cu = opt.uFixed ? len / opt.uFixed : Math.max(1, Math.round(len / 4)) / 8;
     if (opt.split) {
       const ys = opt.split, u0 = Math.floor(rnd() * 8) / 8, vt = (y1 - ys) / 27.2, sh = (k) => [col[0] * k, col[1] * k, col[2] * k];
-      shopAcc.quad([a[0], y0, a[1]], [b[0], y0, b[1]], [b[0], ys, b[1]], [a[0], ys, a[1]], [nx, 0, nz], [u0, 0], [u0 + cu, 0], [u0 + cu, 1], [u0, 1], sh(0.62), sh(0.92));
+      const mir = ex * nz - ez * nx < 0, ua = mir ? u0 + cu : u0, ub = mir ? u0 : u0 + cu;   // keep shop signs reading left-to-right from outside
+      shopAcc.quad([a[0], y0, a[1]], [b[0], y0, b[1]], [b[0], ys, b[1]], [a[0], ys, a[1]], [nx, 0, nz], [ua, 0], [ub, 0], [ub, 1], [ua, 1], sh(0.62), sh(0.92));
       wall.quad([a[0], ys, a[1]], [b[0], ys, b[1]], [b[0], y1, b[1]], [a[0], y1, a[1]], [nx, 0, nz], [0, 0], [cu, 0], [cu, vt], [0, vt], sh(0.8), sh(Math.min(1.08, 0.98 + (y1 - ys) * 0.002)));
     } else wall.quad([a[0], y0, a[1]], [b[0], y0, b[1]], [b[0], y1, b[1]], [a[0], y1, a[1]], [nx, 0, nz], [0, 0], [cu, 0], [cu, vTop], [0, vTop], col);
   }
@@ -746,7 +747,7 @@ function genRoads() {
 }
 
 // ---------- instanced vegetation & lamps ----------
-const benchSpots = [], binSpots = [], bikeSpots = [], treeSpots = [], palmSpots = [], pineSpots = [], lampSpots = [];
+const hydrantSpots = [], benchSpots = [], binSpots = [], bikeSpots = [], treeSpots = [], palmSpots = [], pineSpots = [], lampSpots = [];
 function genStreetFurniture() {
   for (let sj = SJ0; sj <= SJ1; sj++) for (let si = SI0; si < SI1; si++) {
     if (!nodeOK(si, sj) || !nodeOK(si + 1, sj)) continue;
@@ -768,12 +769,11 @@ function genStreetFurniture() {
     for (const sd of [-1, 1]) if (rnd() < 0.4) benchSpots.push([x + rx * sd * 10.3, z + rz * sd * 10.3, Math.atan2(-rx * sd, -rz * sd)]);
     if (avoid.some(a => d2(a[0], a[1], x, z) < 40 * 40) || onDiag(x, z, 30)) return;
     const r = rnd(), sd = rnd() < 0.5 ? -1 : 1;
-    if (r < 0.22) { const cols = ['#6d7276', '#e2b82a', '#2f6db5', '#3c8a4a', '#7a5432']; for (let k = 0; k < 5; k++) { const o = -14 + k * 1.75; binSpots.push([x + ux * o + rx * sd * 6.4, z + uz * o + rz * sd * 6.4, Math.atan2(ux, uz), cols[k]]); }
-      addSolid(rectPoly(Math.min(x + ux * -15 + rx * sd * 5.5, x + ux * -6 + rx * sd * 7.3), Math.min(z + uz * -15 + rz * sd * 5.5, z + uz * -6 + rz * sd * 7.3), Math.max(x + ux * -15 + rx * sd * 5.5, x + ux * -6 + rx * sd * 7.3), Math.max(z + uz * -15 + rz * sd * 5.5, z + uz * -6 + rz * sd * 7.3)), 1.7); }
-    else if (r < 0.32) { for (let k = 0; k < 7; k++) { const o = 4 + k * 1.1; bikeSpots.push([x + ux * o + rx * sd * 6.6, z + uz * o + rz * sd * 6.6, Math.atan2(rx, rz)]); }
-      addSolid(rectPoly(Math.min(x + ux * 3 + rx * sd * 5.6, x + ux * 12.5 + rx * sd * 7.6), Math.min(z + uz * 3 + rz * sd * 5.6, z + uz * 12.5 + rz * sd * 7.6), Math.max(x + ux * 3 + rx * sd * 5.6, x + ux * 12.5 + rx * sd * 7.6), Math.max(z + uz * 3 + rz * sd * 5.6, z + uz * 12.5 + rz * sd * 7.6)), 1.2); }
+    if (r < 0.22) { const cols = ['#6d7276', '#e2b82a', '#2f6db5', '#3c8a4a', '#7a5432']; for (let k = 0; k < 5; k++) { const o = -14 + k * 1.75; binSpots.push([x + ux * o + rx * sd * 6.4, z + uz * o + rz * sd * 6.4, Math.atan2(ux, uz), cols[k]]); } }
+    else if (r < 0.32) { for (let k = 0; k < 7; k++) { const o = 4 + k * 1.1; bikeSpots.push([x + ux * o + rx * sd * 6.6, z + uz * o + rz * sd * 6.6, Math.atan2(rx, rz)]); } }
   };
-  for (let sj = SJ0; sj <= SJ1; sj++) for (let si = SI0; si < SI1; si++) if (nodeOK(si, sj) && nodeOK(si + 1, sj)) segFurniture((si + 1) * P, sz(sj), 1, 0);
+  const hyd = (x, z, ux, uz) => { const sd = rnd() < 0.5 ? -1 : 1, hx = x + ux * 9.6 + -uz * sd * 8.7, hz = z + uz * 9.6 + ux * sd * 8.7; if (rnd() < 0.2 && onSidewalk(hx, hz) && !solidAt(hx, hz)) hydrantSpots.push([hx, hz]); };
+  for (let sj = SJ0; sj <= SJ1; sj++) for (let si = SI0; si < SI1; si++) if (nodeOK(si, sj) && nodeOK(si + 1, sj)) { segFurniture((si + 1) * P, sz(sj), 1, 0); hyd((si + 1) * P, sz(sj), 1, 0); }
   for (let si = SI0; si <= SI1; si++) for (let sj = SJ0; sj < SJ1; sj++) if (nodeOK(si, sj) && nodeOK(si, sj + 1)) segFurniture(sx(si), (sj + 1) * P, 0, 1);
   for (let z = 222; z < 400; z += 26) { benchSpots.push([-164.2, z, Math.PI / 2]); benchSpots.push([-155.8, z + 13, -Math.PI / 2]); }
   for (let z = 210; z < 410; z += 8) { treeSpots.push([-166.5, z]); treeSpots.push([-153.5, z]); }   // La Rambla
@@ -821,27 +821,30 @@ function buildInstanced() {
   // street lamps
   const poleG = new THREE.CylinderGeometry(0.09, 0.13, 6.5, 5); poleG.translate(0, 3.25, 0);
   const headG = new THREE.BoxGeometry(0.7, 0.35, 0.7); headG.translate(0, 6.6, 0);
-  make(poleG, lam('#2b3036'), lampSpots, sp => { p.set(sp[0], CURB, sp[1]); q.identity(); s.set(1, 1, 1); }, false);
+  lampPoleIM = make(poleG, lam('#2b3036'), lampSpots, sp => { p.set(sp[0], CURB, sp[1]); q.identity(); s.set(1, 1, 1); }, false);
   lampHeadMat = new THREE.MeshBasicMaterial({ color: 0x8a8a80 });
-  make(headG, lampHeadMat, lampSpots, sp => { p.set(sp[0], CURB, sp[1]); q.identity(); s.set(1, 1, 1); }, false);
+  lampHeadIM = make(headG, lampHeadMat, lampSpots, sp => { p.set(sp[0], CURB, sp[1]); q.identity(); s.set(1, 1, 1); }, false);
   // benches (wood slats on cast-iron legs)
   const benchG = mergeColored([[G.box, '#7a5232', 0, 0.45, 0, 1.8, 0.06, 0.42], [G.box, '#7a5232', 0, 0.75, -0.2, 1.8, 0.3, 0.05, -0.2], [G.box, '#2b2f33', -0.75, 0.22, 0, 0.08, 0.45, 0.45], [G.box, '#2b2f33', 0.75, 0.22, 0, 0.08, 0.45, 0.45]]);
-  make(benchG, coreMat, benchSpots, sp => { p.set(sp[0], CURB, sp[1]); q.setFromAxisAngle(THREE.Object3D.DefaultUp, sp[2]); s.set(1, 1, 1); });
+  benchIM = make(benchG, coreMat, benchSpots, sp => { p.set(sp[0], CURB, sp[1]); q.setFromAxisAngle(THREE.Object3D.DefaultUp, sp[2]); s.set(1, 1, 1); });
   // recycling containers: body + darker lid, coloured per stream
   const binG = mergeColored([[G.box, '#ffffff', 0, 0.78, 0, 1.6, 1.45, 1.55], [G.box, '#bdbdbd', 0, 1.56, -0.05, 1.62, 0.14, 1.6, -0.08], [G.box, '#3a3a3a', 0, 0.06, 0, 1.4, 0.12, 1.35]]);
   const binFn = (sp) => { p.set(sp[0], groundH(sp[0], sp[1]), sp[1]); q.setFromAxisAngle(THREE.Object3D.DefaultUp, sp[2] + Math.PI / 2); s.set(1, 1, 1); }; binFn.col = i => col.set(binSpots[i][3]);
-  make(binG, new THREE.MeshLambertMaterial({ vertexColors: true }), binSpots, binFn);
+  binIM = make(binG, new THREE.MeshLambertMaterial({ vertexColors: true }), binSpots, binFn);
   // Bicing docks: red bikes on a grey rack
   const ring = new THREE.TorusGeometry(0.32, 0.035, 5, 14); ring.rotateY(Math.PI / 2);
   const bikeG = mergeColored([[ring, '#1c1c1c', 0, 0.36, 0.52, 1, 1, 1], [ring, '#1c1c1c', 0, 0.36, -0.52, 1, 1, 1], [G.box, '#d6372b', 0, 0.62, 0, 0.07, 0.07, 0.95, 0.15], [G.box, '#d6372b', 0, 0.5, -0.2, 0.06, 0.45, 0.06, 0.3], [G.box, '#d6372b', 0, 0.62, 0.42, 0.06, 0.5, 0.06, -0.3], [G.box, '#1c1c1c', 0, 0.86, -0.25, 0.14, 0.05, 0.24], [G.box, '#2b2b2b', 0, 0.92, 0.5, 0.5, 0.04, 0.04], [G.box, '#d6372b', 0, 0.72, 0.62, 0.3, 0.2, 0.2], [G.box, '#9a9ea2', 0, 0.45, -0.75, 0.12, 0.9, 0.12]]);
-  make(bikeG, coreMat, bikeSpots, sp => { p.set(sp[0], groundH(sp[0], sp[1]), sp[1]); q.setFromAxisAngle(THREE.Object3D.DefaultUp, sp[2]); s.set(1, 1, 1); });
+  bikeIM = make(bikeG, coreMat, bikeSpots, sp => { p.set(sp[0], groundH(sp[0], sp[1]), sp[1]); q.setFromAxisAngle(THREE.Object3D.DefaultUp, sp[2]); s.set(1, 1, 1); });
   const lp = new THREE.BufferGeometry(); lp.setAttribute('position', new THREE.Float32BufferAttribute(lampSpots.flatMap(sp => [sp[0], CURB + 6.45, sp[1]]), 3));
+  lampCoronaGeo = lp;
   const lc = new THREE.Points(lp, coronaMat); lc.frustumCulled = false; scene.add(lc);
   const poolG = new THREE.PlaneGeometry(13, 13); poolG.rotateX(-Math.PI / 2);
   poolMat = new THREE.MeshBasicMaterial({ map: poolTex, color: 0xffc070, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 });
-  make(poolG, poolMat, lampSpots, sp => { p.set(sp[0], CURB + 0.06, sp[1]); q.identity(); s.set(1, 1, 1); }, false).receiveShadow = false;
+  poolIM = make(poolG, poolMat, lampSpots, sp => { p.set(sp[0], CURB + 0.06, sp[1]); q.identity(); s.set(1, 1, 1); }, false); poolIM.receiveShadow = false;
+  const hydG = mergeColored([[G.cyl, '#c23a2f', 0, 0.38, 0, 0.14, 0.7, 0.14], [G.sph, '#c23a2f', 0, 0.74, 0, 0.15, 0.1, 0.15], [G.cyl, '#d9d2c4', 0, 0.55, 0, 0.2, 0.08, 0.07], [G.cyl, '#5a5a5a', 0, 0.04, 0, 0.2, 0.08, 0.2]]);
+  hydrantIM = make(hydG, coreMat, hydrantSpots, sp => { p.set(sp[0], CURB, sp[1]); q.identity(); s.set(1, 1, 1); });
 }
-let poolMat;
+let poolMat, lampPoleIM, lampHeadIM, benchIM, binIM, bikeIM, hydrantIM, poolIM, lampCoronaGeo;
 let lampHeadMat;
 
 // ---------- ground & water ----------
@@ -1243,6 +1246,7 @@ class Vehicle {
     if (this.dead) return;
     this.health -= a;
     if (src === 'player' && this.t.police) crime('hitcop', this.pos.x, this.pos.z);
+    if (src === 'player' && !this.driver && !this.dead && !this.t.moto) this.alarmT = 10;
     if (this.health <= 0 && this.burn < 0) { this.burn = this.t.moto ? 1.5 : 4.5; if (this.driver === 'ai' || this.driver === 'cop') { const d = this.driver; this.driver = null; this.ai = null; ejectDriver(this, d === 'cop'); } }
   }
   physics(dt) {
@@ -1282,6 +1286,7 @@ class Vehicle {
         if (imp > 4) { this.damage(Math.min(imp * imp * 0.8, this.t.hp * 0.4)); if (this.driver === 'player') { cam.shake = Math.min(1, imp / 25); sfx.crash(Math.min(1, imp / 20)); } }
       }
     }
+    propCollideVehicle(this);
     // vertical
     const gT = groundH(this.pos.x, this.pos.z), curb = onSidewalk(this.pos.x, this.pos.z) ? CURB : 0;
     if (this.air || this.ty + this.yv * dt > gT + 0.3) {
@@ -1331,6 +1336,8 @@ function explode(v) {
   cam.shake = Math.max(cam.shake, clamp(1 - Math.hypot(v.pos.x - camera.position.x, v.pos.z - camera.position.z) / 60, 0, 1));
   if (player.car === v) { killPlayer(); }
   else { const d = Math.hypot(player.pos.x - v.pos.x, player.pos.z - v.pos.z); if (d < 9 && !player.car) hurtPlayer(70 * (1 - d / 9), v.pos.x, v.pos.z); }
+  for (const pr of propsNear(v.pos.x, v.pos.z, 9)) { const d = Math.hypot(pr.x - v.pos.x, pr.z - v.pos.z) || 1; if (!pr.broken && d < 9) breakProp(pr, (pr.x - v.pos.x) / d * 12, (pr.z - v.pos.z) / d * 12, false, 'boom'); }
+  scareBirds(v.pos.x, v.pos.z, 60);
   for (const p of peds) { const d = Math.hypot(p.pos.x - v.pos.x, p.pos.z - v.pos.z); if (d < 9) knockPed(p, (p.pos.x - v.pos.x) / d * 9, (p.pos.z - v.pos.z) / d * 9, 80, false); }
   for (const o of vehicles) if (o !== v && !o.dead) { const d = Math.hypot(o.pos.x - v.pos.x, o.pos.z - v.pos.z); if (d < 9) o.damage(500 * (1 - d / 9)); }
   v.wreckT = 40;
@@ -1340,7 +1347,7 @@ function explode(v) {
 const fx = (() => {
   const tex = canvasTex(64, 64, g => { const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); }, false);
   const pool = [];
-  for (let i = 0; i < 160; i++) { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false })); s.visible = false; scene.add(s); pool.push({ s, life: 0 }); }
+  for (let i = 0; i < 340; i++) { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false })); s.visible = false; scene.add(s); pool.push({ s, life: 0 }); }
   let idx = 0;
   const kinds = {
     smoke: { col: 0x555555, life: 1.6, s0: 0.8, s1: 3.2, vy: 2.2, add: false, op: 0.55 },
@@ -1350,18 +1357,24 @@ const fx = (() => {
     dust: { col: 0xbfb5a0, life: 0.7, s0: 0.5, s1: 1.8, vy: 0.6, add: false, op: 0.5, spread: 1 },
     splash: { col: 0xd8f0ff, life: 0.7, s0: 0.8, s1: 2.4, vy: 4, add: false, op: 0.8, spread: 2 },
     money: { col: 0x86d98f, life: 0.8, s0: 0.6, s1: 0.1, vy: 3, add: true, op: 1, spread: 2 },
+    trash: { col: 0xd8d2c0, life: 1.4, s0: 0.35, s1: 0.3, vy: 4, add: false, op: 0.9, spread: 3, g: 9 },
+    water: { col: 0xcfe8f5, life: 1.3, s0: 0.5, s1: 1.6, vy: 12, add: false, op: 0.75, spread: 1.1, g: 14 },
+    hit: { col: 0xfff0c0, life: 0.15, s0: 0.5, s1: 0.1, vy: 0, add: true, op: 1, spread: 2 },
+    trail: { col: 0xffd890, life: 0.5, s0: 2.2, s1: 0.3, vy: -1, add: true, op: 0.9, spread: 0.3 },
+    firework: { col: 0xffffff, life: 2.2, s0: 5.5, s1: 1.8, vy: 0, add: true, op: 1, spread: 0, g: 4, drag: 1.1 },
   };
   return {
-    spawn(kind, x, y, z) {
+    spawn(kind, x, y, z, o) {
       const k = kinds[kind], p = pool[idx]; idx = (idx + 1) % pool.length;
-      p.k = k; p.life = k.life; p.s.visible = true; p.s.position.set(x, y, z);
-      p.s.material.color.setHex(k.col); p.s.material.blending = k.add ? THREE.AdditiveBlending : THREE.NormalBlending;
-      const sp = k.spread || 0.5; p.vx = rR(-sp, sp); p.vy = k.vy + rR(-0.5, 0.5); p.vz = rR(-sp, sp);
+      p.k = k; p.life = k.life * (o ? 1 : rR(0.85, 1.15)); p.s.visible = true; p.s.position.set(x, y, z);
+      p.s.material.color.setHex(o && o.col !== undefined ? o.col : k.col); p.s.material.blending = k.add ? THREE.AdditiveBlending : THREE.NormalBlending; const fog = !(kind === 'firework' || kind === 'trail'); if (p.s.material.fog !== fog) { p.s.material.fog = fog; p.s.material.needsUpdate = true; }
+      const sp = k.spread || 0.5; p.vx = o && o.vx !== undefined ? o.vx : rR(-sp, sp); p.vy = o && o.vy !== undefined ? o.vy : k.vy + rR(-0.5, 0.5); p.vz = o && o.vz !== undefined ? o.vz : rR(-sp, sp);
     },
     update(dt) {
       for (const p of pool) {
         if (p.life <= 0) continue;
         p.life -= dt; if (p.life <= 0) { p.s.visible = false; continue; }
+        if (p.k.g) p.vy -= p.k.g * dt; if (p.k.drag) { const f = Math.exp(-p.k.drag * dt); p.vx *= f; p.vy *= f; p.vz *= f; }
         const t = 1 - p.life / p.k.life; p.s.position.x += p.vx * dt; p.s.position.y += p.vy * dt; p.s.position.z += p.vz * dt;
         const sc = lerp(p.k.s0, p.k.s1, t); p.s.scale.set(sc, sc, sc); p.s.material.opacity = p.k.op * (1 - t);
       }
@@ -1384,6 +1397,7 @@ function auInit() {
   AU.master = c.createGain(); AU.master.gain.value = AU.muted ? 0 : 0.7; AU.master.connect(c.destination);
   AU.sfx = c.createGain(); AU.sfx.connect(AU.master);
   AU.music = c.createGain(); AU.music.gain.value = 0; AU.music.connect(AU.master);
+  AU.busk = c.createGain(); AU.busk.gain.value = 0; AU.busk.connect(AU.master);
   const nb = c.createBuffer(1, c.sampleRate, c.sampleRate), d = nb.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; AU.noise = nb;
   AU.eng = c.createOscillator(); AU.eng.type = 'sawtooth'; AU.eng2 = c.createOscillator(); AU.eng2.type = 'square';
   AU.engF = c.createBiquadFilter(); AU.engF.type = 'lowpass'; AU.engF.frequency.value = 520;
@@ -1396,13 +1410,13 @@ function auInit() {
   AU.ambG = c.createGain(); AU.ambG.gain.value = 0.05; amb.connect(af); af.connect(AU.ambG); AU.ambG.connect(AU.sfx); amb.start();
 }
 function noiseHit(t, dur, freq, q, vol, type = 'bandpass', dest) {
-  const c = AU.ctx; if (!c) return;
+  const c = AU.ctx; if (!c || !(vol > 0.0005)) return;
   const s = c.createBufferSource(); s.buffer = AU.noise; const f = c.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q;
   const g = c.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
   s.connect(f); f.connect(g); g.connect(dest || AU.sfx); s.start(t, Math.random() * 0.5); s.stop(t + dur + 0.05);
 }
 function tone(t, freq, dur, type, vol, dest, slideTo, filt) {
-  const c = AU.ctx; if (!c) return;
+  const c = AU.ctx; if (!c || !(vol > 0.0005)) return;
   const o = c.createOscillator(); o.type = type; o.frequency.setValueAtTime(freq, t); if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t + dur);
   const g = c.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
   let last = o;
@@ -1420,6 +1434,10 @@ const sfx = {
   pass() { if (!AU.ctx) return; const t = AU.ctx.currentTime; [57, 61, 64, 69, 73].forEach((m, i) => tone(t + i * 0.11, mtof(m), 0.5, 'sawtooth', 0.12, null, null, 3000)); },
   fail() { if (!AU.ctx) return; const t = AU.ctx.currentTime; [64, 63, 62, 58].forEach((m, i) => tone(t + i * 0.18, mtof(m), 0.5, 'triangle', 0.18)); },
   click() { if (!AU.ctx) return; tone(AU.ctx.currentTime, 1200, 0.04, 'square', 0.06); },
+  clang(k) { if (!AU.ctx) return; const t = AU.ctx.currentTime; tone(t, rR(380, 520), 0.5, 'triangle', 0.12 * k); tone(t, rR(900, 1300), 0.25, 'square', 0.04 * k, null, null, 3000); noiseHit(t, 0.08, 2500, 1, 0.2 * k); },
+  thud(k) { if (!AU.ctx) return; const t = AU.ctx.currentTime; noiseHit(t, 0.25, 400, 0.8, 0.6 * k, 'lowpass'); tone(t, 110, 0.2, 'sine', 0.3 * k, null, 50); },
+  glass() { if (!AU.ctx) return; const t = AU.ctx.currentTime; for (let i = 0; i < 6; i++) tone(t + i * 0.03, rR(2500, 5000), 0.12, 'sine', 0.03); noiseHit(t, 0.2, 6000, 1, 0.15, 'highpass'); },
+  whoosh() { if (!AU.ctx) return; noiseHit(AU.ctx.currentTime, 0.18, 900, 0.6, 0.12); },
 };
 
 // ---------- radio ----------
@@ -1473,7 +1491,7 @@ const wantedLevel = () => Math.min(5, Math.floor(game.heat));
 // ====================== SAVE ======================
 const SAVE_KEY = 'ciutat-comtal-save-v1';
 function loadSave() { try { const s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); return s && typeof s === 'object' ? s : null; } catch (e) { return null; } }
-function saveObj() { return { mission: game.mission, money: player.money, panots: game.panots.slice(), hasPistol: player.hasPistol, ammo: player.ammo, time: game.time }; }
+function saveObj() { return { mission: game.mission, money: player.money, panots: game.panots.slice(), hasPistol: player.hasPistol, hasBat: player.hasBat, ammo: player.ammo, time: game.time, stats: game.stats }; }
 function writeSave() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(saveObj())); } catch (e) { /* storage unavailable */ } }
 
 // ====================== INPUT ======================
@@ -1551,6 +1569,9 @@ function drawWeaponIcon() {
   if (player.weapon === 1) {
     g.beginPath(); g.moveTo(24, 46); g.lineTo(104, 46); g.lineTo(104, 62); g.lineTo(62, 62); g.lineTo(58, 70); g.lineTo(52, 70); g.lineTo(48, 92); g.lineTo(28, 92); g.lineTo(36, 62); g.lineTo(24, 62); g.closePath(); g.fill(); g.stroke();
     $('ammo').textContent = player.ammo;
+  } else if (player.weapon === 2) {
+    g.save(); g.translate(64, 64); g.rotate(-0.8); g.beginPath(); g.moveTo(-50, -5); g.lineTo(30, -12); g.quadraticCurveTo(48, 0, 30, 12); g.lineTo(-50, 5); g.closePath(); g.fillStyle = '#d9b07a'; g.fill(); g.stroke(); g.fillStyle = '#222'; g.fillRect(-50, -6, 16, 12); g.restore();
+    $('ammo').textContent = '';
   } else {
     g.beginPath(); g.roundRect ? g.roundRect(34, 40, 60, 50, 12) : g.rect(34, 40, 60, 50); g.fill(); g.stroke();
     g.beginPath(); for (let k = 0; k < 3; k++) { g.moveTo(49 + k * 15, 42); g.lineTo(49 + k * 15, 62); } g.moveTo(34, 64); g.lineTo(80, 64); g.stroke();
@@ -1559,11 +1580,11 @@ function drawWeaponIcon() {
 }
 
 // ====================== PICKUPS ======================
-const pickupGeo = { money: new THREE.BoxGeometry(0.7, 0.35, 0.4), health: new THREE.BoxGeometry(0.8, 0.8, 0.25), pistol: new THREE.BoxGeometry(0.9, 0.3, 0.2), panot: new THREE.BoxGeometry(1.1, 0.12, 1.1), bag: new THREE.BoxGeometry(0.8, 0.6, 0.4) };
+const pickupGeo = { money: new THREE.BoxGeometry(0.7, 0.35, 0.4), health: new THREE.BoxGeometry(0.8, 0.8, 0.25), pistol: new THREE.BoxGeometry(0.9, 0.3, 0.2), panot: new THREE.BoxGeometry(1.1, 0.12, 1.1), bag: new THREE.BoxGeometry(0.8, 0.6, 0.4), bat: new THREE.BoxGeometry(0.12, 0.12, 0.95) };
 const panotMat = new THREE.MeshLambertMaterial({ map: panotTex, emissive: 0x332a10 });
 function addPickup(type, x, z, opts) {
   opts = opts || {};
-  const mat = type === 'money' ? lam('#3f9a4a', { emissive: 0x1c4a20 }) : type === 'health' ? lam('#e8e3d6', { emissive: 0x5a1010 }) : type === 'pistol' ? lam('#2b2b30', { emissive: 0x202030 }) : type === 'panot' ? panotMat : lam('#b07a3a', { emissive: 0x3a2008 });
+  const mat = type === 'money' ? lam('#3f9a4a', { emissive: 0x1c4a20 }) : type === 'health' ? lam('#e8e3d6', { emissive: 0x5a1010 }) : type === 'pistol' ? lam('#2b2b30', { emissive: 0x202030 }) : type === 'bat' ? lam('#c99a62', { emissive: 0x3a2a10 }) : type === 'panot' ? panotMat : lam('#b07a3a', { emissive: 0x3a2008 });
   const m = new THREE.Mesh(pickupGeo[type], mat); const y = opts.y !== undefined ? opts.y : surfH(x, z) + 0.9; m.position.set(x, y, z); m.castShadow = true; scene.add(m);
   if (type === 'health') { const c = new THREE.Mesh(bx(0.5, 0.14, 0.27), lam('#d9412f')); const c2 = new THREE.Mesh(bx(0.14, 0.5, 0.27), lam('#d9412f')); m.add(c); m.add(c2); }
   const p = Object.assign({ type, m, x, z, y, alive: true, respawn: 0 }, opts); pickups.push(p); return p;
@@ -1587,6 +1608,7 @@ function collect(p) {
   if (p.type === 'money') { player.money += p.amount; fx.spawn('money', p.x, p.y, p.z); removePickup(p); }
   else if (p.type === 'health') { player.health = 100; p.respawn = 60; p.m.visible = false; toast('Health restored.'); }
   else if (p.type === 'pistol') { player.hasPistol = true; player.ammo += 40; player.weapon = 1; drawWeaponIcon(); toast('<b>Pistol</b> picked up. Q switches weapon; click or Ctrl shoots.'); p.respawn = 120; p.m.visible = false; }
+  else if (p.type === 'bat') { player.hasBat = true; player.weapon = 2; drawWeaponIcon(); toast('<b>Baseball bat.</b> It breaks lamp posts, benches and hydrants. Q switches weapon.'); p.respawn = 120; p.m.visible = false; }
   else if (p.type === 'panot') {
     game.panots.push(p.id); removePickup(p); const n = game.panots.length;
     player.money += 100; bigMsg('PANOT ' + n + '/20', n === 20 ? 'Every panot found · €5000 bonus' : 'Flower of Barcelona · €100', false, 2500);
@@ -1607,21 +1629,21 @@ function spawnPed(nearOnly) {
     const dd = d2(_lp[0], _lp[1], px, pz);
     if (dd < (nearOnly ? 10 * 10 : 35 * 35) || dd > rad * rad) continue;
     const h = makeHuman(randomLook());
-    const p = { h, pos: new THREE.Vector3(_lp[0], groundH(_lp[0], _lp[1]) + l.y, _lp[1]), heading: _lp[2], loop: l, t, dir: R() < 0.5 ? 1 : -1, speed: rR(1.15, 1.6) * h.gait, state: 'walk', health: 40, timer: 0, phase: R() * 6, vx: 0, vz: 0, vy: 0, dropped: false };
-    peds.push(p); return p;
+    const p = newPed(h, _lp[0], _lp[1], l.y, l, t); p.heading = _lp[2]; return p;
   }
   return null;
 }
 function removePed(p) { disposeGroup(p.h.g); const i = peds.indexOf(p); if (i >= 0) peds.splice(i, 1); }
 function knockPed(p, vx, vz, dmg, byPlayer) {
   if (p.state === 'down' || p.state === 'dead') { p.vx += vx * 0.3; p.vz += vz * 0.3; return; }
-  p.health -= dmg; p.state = 'down'; p.timer = 4 + R() * 2; p.vx = vx; p.vz = vz; p.vy = Math.min(8, Math.hypot(vx, vz) * 0.35);
+  p.health -= dmg; p.state = 'down'; p.timer = 4 + R() * 2; p.byPlayer = byPlayer || p.byPlayer; p.fixed = false; p.h.body.position.y = 0;
+  if (p.thief && !p.rewarded && (byPlayer || d2(p.pos.x, p.pos.z, player.pos.x, player.pos.z) < 6 * 6)) { p.rewarded = true; addPickup('money', p.pos.x + 0.6, p.pos.z, { amount: Math.floor(rR(120, 220)), ttl: 60 }); toast('Thief stopped. Grab the stolen cash.', 3000); } p.vx = vx; p.vz = vz; p.vy = Math.min(8, Math.hypot(vx, vz) * 0.35);
   if (!p.dropped && R() < 0.65) { p.dropped = true; addPickup('money', p.pos.x + rR(-1, 1), p.pos.z + rR(-1, 1), { amount: Math.floor(rR(8, 60)), ttl: 40 }); }
-  if (byPlayer) crime(p.health <= 0 ? 'kill' : 'hurt', p.pos.x, p.pos.z);
-  scarePeds(p.pos.x, p.pos.z, 25);
+  if (byPlayer) crime(p.thief ? 'none' : p.cop ? 'hitcop' : p.health <= 0 ? 'kill' : 'hurt', p.pos.x, p.pos.z);
+  scarePeds(p.pos.x, p.pos.z, 25); scareBirds(p.pos.x, p.pos.z, 15);
 }
 function scarePeds(x, z, r) {
-  for (const p of peds) if (p.state === 'walk' && d2(p.pos.x, p.pos.z, x, z) < r * r) { p.state = 'flee'; p.timer = 7 + R() * 4; const a = Math.atan2(p.pos.x - x, p.pos.z - z); p.heading = a; }
+  for (const p of peds) if ((p.state === 'walk' || p.state === 'idle' || p.state === 'watch' || p.state === 'perform') && d2(p.pos.x, p.pos.z, x, z) < r * r) { p.fixed = false; p.calm = false; if (R() < 0.3) shout(p, pR(SAY.hurt)); p.state = 'flee'; p.timer = 7 + R() * 4; const a = Math.atan2(p.pos.x - x, p.pos.z - z); p.heading = a; }
 }
 function updatePeds(dt) {
   const target = coarse ? 26 : 42;
@@ -1630,8 +1652,9 @@ function updatePeds(dt) {
   for (let i = peds.length - 1; i >= 0; i--) {
     const p = peds[i];
     const far = d2(p.pos.x, p.pos.z, px, pz);
-    if (far > 200 * 200) { removePed(p); continue; }
-    if (p.state === 'walk') {
+    if (far > 200 * 200) { if (p.fixed) continue; removePed(p); continue; }
+    if (p.state !== 'walk' && p.state !== 'flee' && p.state !== 'down' && p.state !== 'dead') { if (updatePedBehaviour(p, dt, far)) continue; }
+    else if (p.state === 'walk') {
       p.t += p.dir * p.speed * dt;
       if (R() < dt * 0.02) p.dir = -p.dir;
       loopPoint(p.loop, p.t, _lp);
@@ -1640,10 +1663,10 @@ function updatePeds(dt) {
       animHuman(p.h, p.phase, 1, 0);
       p.h.g.rotation.set(0, p.heading, 0);
     } else if (p.state === 'flee') {
-      const sp = 5.2; p.heading += rR(-1, 1) * dt;
+      const sp = p.calm ? 1.5 : 5.2; p.heading += rR(-1, 1) * dt;
       p.pos.x += Math.sin(p.heading) * sp * dt; p.pos.z += Math.cos(p.heading) * sp * dt;
       const hit = collideWorld(p.pos.x, p.pos.z, 0.4, p.pos.y + 0.5); if (hit) { p.pos.x += hit[0]; p.pos.z += hit[1]; p.heading += Math.PI * 0.5 * (R() < 0.5 ? 1 : -1); }
-      p.pos.y = surfH(p.pos.x, p.pos.z); p.phase += dt * 14; animHuman(p.h, p.phase, 1.3, 0);
+      p.pos.y = surfH(p.pos.x, p.pos.z); p.phase += dt * (p.calm ? 5.5 : 14); animHuman(p.h, p.phase, p.calm ? 1 : 1.3, 0);
       p.h.g.rotation.set(0, p.heading, 0);
       p.timer -= dt; if (p.timer < 0 && far > 60 * 60) { removePed(p); continue; }
     } else if (p.state === 'down' || p.state === 'dead') {
@@ -1652,7 +1675,7 @@ function updatePeds(dt) {
       const hit = collideWorld(p.pos.x, p.pos.z, 0.4); if (hit) { p.pos.x += hit[0]; p.pos.z += hit[1]; p.vx *= -0.3; p.vz *= -0.3; }
       p.h.g.rotation.set(-Math.PI / 2 * Math.min(1, (p.rot = (p.rot || 0) + dt * 6)), p.heading, 0);
       p.timer -= dt;
-      if (p.state === 'down' && p.timer < 0) { if (p.health > 0) { p.state = 'flee'; p.timer = 8; p.rot = 0; } else { p.state = 'dead'; p.timer = 25; } }
+      if (p.state === 'down' && p.timer < 0) { if (p.health > 0) { p.rot = 0; p.h.g.rotation.x = 0; if (p.cop && wantedLevel() > 0) p.state = 'cop'; else if (p.tough && p.byPlayer && !player.car) { p.state = 'fight'; p.target = 'player'; p.timer = 15; shout(p, pR(SAY.fight)); } else { p.state = 'flee'; p.timer = 8; } } else { p.state = 'dead'; p.timer = 25; } }
       else if (p.state === 'dead' && p.timer < 0) { removePed(p); continue; }
     }
     if (p.pos.y < WATER_Y - 0.8 && p.state !== 'dead') { p.state = 'dead'; p.timer = 5; }
@@ -1794,7 +1817,7 @@ function spawnTraffic(minD, maxD, mode) {
     const parked = mode === 'parked', lane = parked ? (R() < 0.5 ? -6.2 : 6.2) : (R() < 0.5 ? -2.6 : 2.6), along = rR(14, 62);
     const x = ax + ux * along - uz * lane, z = az + uz * along + ux * lane;
     const dd = d2(x, z, player.pos.x, player.pos.z); if (dd < minD * minD || dd > maxD * maxD) continue;
-    if (vehicles.some(o => d2(o.pos.x, o.pos.z, x, z) < 9 * 9) || collideWorld(x, z, 1.2) || onDiag(x, z, 17)) continue;
+    if (vehicles.some(o => d2(o.pos.x, o.pos.z, x, z) < 9 * 9) || collideWorld(x, z, 1.2) || onDiag(x, z, 17) || propNear(x, z, 2.6)) continue;
     const key = mode === 'cop' || mode === 'patrol' ? 'patrulla' : pR(['picolo', 'picolo', 'picolo', 'taxi', 'taxi', 'furgo', 'scuter', 'delfi', 'picolo']);
     const v = new Vehicle(key, x, z, Math.atan2(ux, uz));
     if (parked) { v.ai = null; v.driver = null; v.inHB = true; v.parked = true; return v; }
@@ -1839,7 +1862,7 @@ function spawnOffroadCop() {
 
 // ====================== CRIME & WANTED ======================
 let copSeenT = 0, copHits = 0;
-function nearestCop(x, z) { let b = 1e9, bv = null; for (const v of vehicles) if (v.driver === 'cop' && !v.dead) { const d = Math.hypot(v.pos.x - x, v.pos.z - z); if (d < b) { b = d; bv = v; } } return [b, bv]; }
+function nearestCop(x, z) { let b = 1e9, bv = null; for (const v of vehicles) if (v.driver === 'cop' && !v.dead) { const d = Math.hypot(v.pos.x - x, v.pos.z - z); if (d < b) { b = d; bv = v; } } let fb = 1e9; for (const p of peds) if (p.cop && p.state !== 'dead' && p.state !== 'down') { const d = Math.hypot(p.pos.x - x, p.pos.z - z); if (d < fb) fb = d; } return [Math.min(b, fb), bv, fb]; }
 function raise(h) { const before = wantedLevel(); game.heat = Math.min(5.99, Math.max(game.heat, 0) + h); if (wantedLevel() > before) copSeenT = 0; }
 function crime(kind, x, z) {
   const [cd] = nearestCop(x, z), seen = cd < 120;
@@ -1858,6 +1881,7 @@ function updateWanted(dt) {
     const tg = player.car ? player.car.pos : player.pos;
     let seen = false;
     for (const v of vehicles) if (v.driver === 'cop' && !v.dead && v.ai && v.ai.mode === 'cop') { const d = d2(v.pos.x, v.pos.z, tg.x, tg.z); if (d < 95 * 95 && los(v.pos.x, v.pos.z, tg.x, tg.z, 2)) { seen = true; break; } }
+    if (!seen) for (const p of peds) if (p.cop && p.state === 'cop' && d2(p.pos.x, p.pos.z, tg.x, tg.z) < 60 * 60 && los(p.pos.x, p.pos.z, tg.x, tg.z, 1.5)) { seen = true; break; }
     if (seen) copSeenT = 0; else copSeenT += dt;
     st.classList.toggle('blink', !seen);
     if (copSeenT > 9 + w * 4) { game.heat = w - 1; copSeenT = 0; if (wantedLevel() === 0) toast('You lost the police.'); }
@@ -1865,7 +1889,8 @@ function updateWanted(dt) {
     if (!player.dead) {
       const [cd, cv2] = nearestCop(tg.x, tg.z);
       const slow = player.car ? Math.abs(player.car.speed) < 1.5 : true;
-      if (cv2 && cd < (player.car ? 7 : 6.5) && slow && Math.abs(cv2.speed) < 3) { player.bustT += dt; if (player.bustT > (player.car ? 2.4 : 1.6)) bust(); }
+      const footBust = !player.car && player.knock <= 0 && footCopNear(tg.x, tg.z, 1.8);
+      if (footBust || (cv2 && Math.hypot(cv2.pos.x - tg.x, cv2.pos.z - tg.z) < (player.car ? 7 : 6.5) && slow && Math.abs(cv2.speed) < 3)) { player.bustT += dt; if (player.bustT > (player.car ? 2.4 : 1.6)) bust(); }
       else player.bustT = Math.max(0, player.bustT - dt);
     }
   } else { st.classList.remove('blink'); copSeenT = 0; player.bustT = 0; }
@@ -1896,13 +1921,13 @@ function respawn(at, heading, cost, loseGuns) {
     if (player.car) { const v = player.car; player.car = null; v.driver = null; }
     player.pos.set(at[0], surfH(at[0], at[1]), at[1]); player.heading = heading; cam.yaw = heading; player.vy = 0; player.knock = 0;
     player.health = 100; player.money = Math.max(0, player.money - cost); player.dead = false; player.human.g.visible = true; player.human.g.rotation.set(0, heading, 0);
-    if (loseGuns) { player.hasPistol = false; player.ammo = 0; player.weapon = 0; drawWeaponIcon(); }
+    if (loseGuns) { player.hasPistol = false; player.hasBat = false; player.ammo = 0; player.weapon = 0; drawWeaponIcon(); }
     game.heat = 0; player.bustT = 0;
     for (const v of vehicles.slice()) if (v.driver === 'cop' && v.ai && v.ai.mode === 'cop') v.remove();
     writeSave(); $('fade').classList.remove('on');
   }, 700);
 }
-function switchWeapon() { if (!player.hasPistol) { toast('You have no weapon yet. Look for one in El Raval.'); return; } player.weapon = player.weapon ? 0 : 1; drawWeaponIcon(); sfx.click(); }
+function switchWeapon() { const list = [0]; if (player.hasBat) list.push(2); if (player.hasPistol && player.ammo > 0) list.push(1); if (list.length === 1) { toast('Only your fists. There is a bat on the beach and one in El Raval; a pistol is hidden in El Raval too.'); return; } player.weapon = list[(list.indexOf(player.weapon) + 1) % list.length]; drawWeaponIcon(); sfx.click(); }
 function enterExit() {
   if (player.dead || player.knock > 0) return;
   if (player.car) {
@@ -1946,14 +1971,16 @@ function attack() {
       else { best.damage(110, 'player'); if (best.t.police) crime('shootcop', hx, hz); for (let i = 0; i < 4; i++) fx.spawn('spark', hx, hy, hz); }
     } else {
       player.heading = cam.yaw; const s = Math.sin(cam.yaw), c = Math.cos(cam.yaw); let d = 2;
-      while (d < 60 && !solidAt(ox + s * d, oz + c * d, oy)) d += 1.5;
+      let hitProp = null;
+      while (d < 60 && !solidAt(ox + s * d, oz + c * d, oy)) { const qx = ox + s * d, qz = oz + c * d; hitProp = propsNear(qx, qz, 1).find(pr => !pr.broken && d2(pr.x, pr.z, qx, qz) < (pr.r + 0.4) ** 2); if (hitProp) break; d += 1.0; }
+      if (hitProp) { if (hitProp.kind === 'lamp') { if (!hitProp.lightOut) { hitProp.lightOut = true; setCorona(hitProp.idx, false); sfx.glass(); } } else breakProp(hitProp, s * 6, c * 6, true, 'gun'); }
       hx = ox + s * d; hy = oy - Math.sin(cam.pitch) * d * 0.3; hz = oz + c * d; if (d < 60) for (let i = 0; i < 3; i++) fx.spawn('spark', hx, hy, hz);
     }
     tracer(ox + Math.sin(player.heading) * 0.6, oy, oz + Math.cos(player.heading) * 0.6, hx, hy, hz);
     fx.spawn('spark', ox + Math.sin(player.heading) * 0.8, oy, oz + Math.cos(player.heading) * 0.8);
-    sfx.shot(); scarePeds(ox, oz, 40); crime('gunfire', ox, oz);
+    sfx.shot(); scarePeds(ox, oz, 40); scareBirds(ox, oz, 70); crime('gunfire', ox, oz);
     if (player.ammo === 0) { player.weapon = 0; drawWeaponIcon(); }
-  } else {
+  } else { meleeAttack(); return;
     if (player.punchT > 0) return; player.punchT = 0.45;
     let best = null, bd = 2.2;
     for (const p of peds) { if (p.state === 'dead' || p.state === 'down') continue; const d = Math.hypot(p.pos.x - player.pos.x, p.pos.z - player.pos.z); if (d < bd && Math.abs(wrapA(Math.atan2(p.pos.x - player.pos.x, p.pos.z - player.pos.z) - player.heading)) < 1.1) { bd = d; best = p; } }
@@ -1987,7 +2014,7 @@ function updatePlayer(dt) {
   player.swim = groundH(player.pos.x, player.pos.z) < WATER_Y - 1.1;
   const sprint = keys.ShiftLeft || keys.ShiftRight || (coarse && Math.hypot(touch.ax, touch.ay) > 0.95);
   const speed = player.swim ? 3 : sprint ? 9.5 : 5.2;
-  if (ml > 0.1 && player.knock <= 0) {
+  if (ml > 0.1 && player.knock <= 0 && !(player.atk && player.atk.kind !== 'jab')) {
     mx /= Math.max(1, ml); mz /= Math.max(1, ml);
     player.pos.x += mx * speed * dt; player.pos.z += mz * speed * dt;
     const want = Math.atan2(mx, mz); player.heading = wrapA(player.heading + wrapA(want - player.heading) * Math.min(1, dt * 12));
@@ -1995,6 +2022,7 @@ function updatePlayer(dt) {
   }
   // collisions
   const hit = collideWorld(player.pos.x, player.pos.z, 0.45, player.pos.y + 0.6); if (hit) { player.pos.x += hit[0]; player.pos.z += hit[1]; }
+  propCollideCircle(player.pos, 0.45);
   for (const v of vehicles) {
     const s = Math.sin(v.heading), c = Math.cos(v.heading), rx = player.pos.x - v.pos.x, rz = player.pos.z - v.pos.z;
     const al = rx * s + rz * c, sd = -rx * c + rz * s, hl = v.t.len / 2 + 0.4, hw = v.t.wid / 2 + 0.4;
@@ -2014,7 +2042,9 @@ function updatePlayer(dt) {
     else if (player.pos.y - gy > 0.3) player.grounded = false;
   }
   h.g.position.copy(player.pos); h.g.rotation.y = player.heading;
-  animHuman(h, player.anim, ml > 0.1 ? (sprint ? 1.25 : 1) : 0, player.punchT > 0 && player.weapon === 0 ? player.punchT / 0.45 : 0);
+  animHuman(h, player.anim, ml > 0.1 && !player.atk ? (sprint ? 1.25 : 1) : 0, 0);
+  if (player.atk) animAttack(h, player.atk); else { h.body.rotation.x = 0; h.armR.rotation.z = 0.08; }
+  if (player.weapon === 2 && !player.atk) { h.armR.rotation.x = Math.min(h.armR.rotation.x, -0.35); h.elbowR.rotation.x = -0.9; }
   if (player.weapon === 1 && player.hasPistol && player.fireT > -1) { h.armR.rotation.x = -Math.PI / 2; h.elbowR.rotation.x = 0; }
   // push peds aside
   for (const p of peds) if (p.state === 'walk' && d2(p.pos.x, p.pos.z, player.pos.x, player.pos.z) < 0.7) { p.dir = -p.dir; p.t += p.dir * 0.4; }
@@ -2058,11 +2088,496 @@ function vehicleInteractions(dt) {
       const rx = p.pos.x - a.pos.x, rz = p.pos.z - a.pos.z; if (Math.abs(rx) > 4 || Math.abs(rz) > 4) continue;
       const al = rx * s + rz * c, sd = -rx * c + rz * s;
       if (Math.abs(al) < hl && Math.abs(sd) < hw) {
-        if (sp > 3.5) { knockPed(p, a.vx * 0.8 + rR(-1, 1), a.vz * 0.8 + rR(-1, 1), sp * 3, a.driver === 'player'); if (a.driver === 'player') sfx.punch(); }
-        else { p.pos.x += -c * Math.sign(sd) * 0.5; p.pos.z += s * Math.sign(sd) * 0.5; }
+        if (sp > 3.5) { knockPed(p, a.vx * 0.8 + rR(-1, 1), a.vz * 0.8 + rR(-1, 1), sp * 3, a.driver === 'player'); if (a.driver === 'player') { sfx.thud(0.7); if (sp > 8) game.stats.ko++; } shout(p, pR(SAY.hurt)); }
+        else { if (R() < 0.05) shout(p, pR(SAY.car)); p.pos.x += -c * Math.sign(sd) * 0.5; p.pos.z += s * Math.sign(sd) * 0.5; }
       }
     }
   }
+}
+
+// ====================== LIFE: breakables, brawls, street events, birds, fireworks ======================
+game.stats = { props: 0, ko: 0, fights: 0, snatch: 0 };
+// ---------- breakable props ----------
+const props = [], propHash = new SHash(20), _pq = [], _m4 = new THREE.Matrix4(), _zero = new THREE.Matrix4().makeScale(0, 0, 0);
+const PROP_KIND = {
+  lamp: { r: 0.3, brk: 7, slow: 0.82, dmg: 25, melee: 'bat' },
+  bench: { r: 0.85, brk: 3, slow: 0.9, dmg: 6, melee: 'bat' },
+  bin: { r: 0.85, brk: 3, slow: 0.88, dmg: 8, melee: 'kick' },
+  bike: { r: 0.45, brk: 2, slow: 0.96, dmg: 2, melee: 'kick' },
+  hydrant: { r: 0.32, brk: 4, slow: 0.85, dmg: 12, melee: 'bat' },
+};
+function addProp(kind, x, z, refs, extra) { const k = PROP_KIND[kind]; const p = bbox({ poly: [[x - k.r, z - k.r], [x + k.r, z + k.r]] }); Object.assign(p, { kind, k, x, z, r: k.r, refs, broken: false, mats: [] }, extra || {}); props.push(p); propHash.insert(p); return p; }
+function propsNear(x, z, r) { return propHash.query(x - r, z - r, x + r, z + r, _pq); }
+const propNear = (x, z, r) => propsNear(x, z, r).some(p => !p.broken && d2(p.x, p.z, x, z) < (r + p.r) ** 2);
+const debris = [];
+const binMats = {};
+function addDebris(geo, mat, matrix, vx, vy, vz, tip) {
+  const m = new THREE.Mesh(geo, mat); matrix.decompose(m.position, m.quaternion, m.scale); m.castShadow = true; scene.add(m);
+  const d = { m, vx, vy, vz, ax: new THREE.Vector3(rR(-1, 1), rR(-1, 1), rR(-1, 1)).normalize(), av: rR(3, 9), life: 45, rest: false, tip, q0: m.quaternion.clone(), ang: 0 };
+  if (tip) { d.ax.set(tip[0], 0, tip[1]).normalize(); d.av = 0.6; }
+  debris.push(d); if (debris.length > 70) { const o = debris.shift(); scene.remove(o.m); }
+  return d;
+}
+const _q = new THREE.Quaternion();
+function updateDebris(dt) {
+  for (let i = debris.length - 1; i >= 0; i--) {
+    const d = debris[i]; d.life -= dt;
+    if (d.life <= 0) { scene.remove(d.m); debris.splice(i, 1); continue; }
+    if (d.rest) continue;
+    if (d.tip) { // lamp post tipping over its base
+      d.av += 7 * Math.sin(d.ang + 0.15) * dt; d.ang += d.av * dt;
+      if (d.ang > 1.48) { d.ang = 1.48; d.av *= -0.3; if (Math.abs(d.av) < 0.4) d.rest = true; else sfx.clang(0.4); }
+      d.m.quaternion.copy(_q.setFromAxisAngle(d.ax, d.ang)).multiply(d.q0); continue;
+    }
+    d.vy -= 20 * dt; d.m.position.x += d.vx * dt; d.m.position.y += d.vy * dt; d.m.position.z += d.vz * dt;
+    const hit = collideWorld(d.m.position.x, d.m.position.z, 0.4, d.m.position.y); if (hit) { d.m.position.x += hit[0]; d.m.position.z += hit[1]; d.vx *= -0.4; d.vz *= -0.4; }
+    d.m.quaternion.premultiply(_q.setFromAxisAngle(d.ax, d.av * dt));
+    const gy = surfH(d.m.position.x, d.m.position.z);
+    if (d.m.position.y < gy) { d.m.position.y = gy; if (d.vy < -3) fx.spawn('dust', d.m.position.x, gy + 0.3, d.m.position.z); d.vy = -d.vy * 0.3; d.vx *= 0.55; d.vz *= 0.55; d.av *= 0.5;
+      if (Math.abs(d.vy) < 1 && Math.hypot(d.vx, d.vz) < 0.6) { d.rest = true; d.m.position.y = gy; } }
+  }
+}
+const geysers = [];
+function breakProp(p, vx, vz, byPlayer, src) {
+  if (p.broken) return; p.broken = true; p.brokenAt = now; if (byPlayer) game.stats.props++;
+  p.saved = p.refs.map(([im, i]) => { const m = new THREE.Matrix4(); im.getMatrixAt(i, m); return m; });
+  const sp = Math.hypot(vx, vz), up = clamp(sp * 0.35, 2.5, 8);
+  if (p.kind === 'lamp') {
+    const g = new THREE.Group(); g.position.set(p.x, CURB, p.z); scene.add(g);
+    p.refs.forEach(([im, i], j) => { if (im.isInstancedMesh) { im.setMatrixAt(i, _zero); im.instanceMatrix.needsUpdate = true; } });
+    const tipDir = sp > 0.1 ? [vz / sp, -vx / sp] : [1, 0];
+    const pole = new THREE.Mesh(lampPoleIM.geometry, lampPoleIM.material), head = new THREE.Mesh(lampHeadIM.geometry, lampHeadIM.material);
+    const grp = new THREE.Group(); grp.add(pole); grp.add(head); grp.position.set(p.x, CURB, p.z); scene.add(grp); scene.remove(g);
+    const d = { m: grp, tip: true, ax: new THREE.Vector3(tipDir[0], 0, tipDir[1]), av: 0.4 + sp * 0.05, ang: 0, q0: new THREE.Quaternion(), life: 50, rest: false };
+    debris.push(d);
+    setCorona(p.idx, false);
+    for (let i = 0; i < 10; i++) fx.spawn('spark', p.x, CURB + 6.5, p.z); sfx.clang(0.8); sfx.glass();
+  } else {
+    p.refs.forEach(([im, i], j) => {
+      const mat = p.kind === 'bin' ? (binMats[p.color] || (binMats[p.color] = new THREE.MeshLambertMaterial({ vertexColors: true, color: p.color }))) : im.material;
+      addDebris(im.geometry, mat, p.saved[j], vx * 0.75 + rR(-1.5, 1.5), up + rR(0, 2), vz * 0.75 + rR(-1.5, 1.5));
+      im.setMatrixAt(i, _zero); im.instanceMatrix.needsUpdate = true;
+    });
+    if (p.kind === 'bin') { for (let i = 0; i < 8; i++) fx.spawn('trash', p.x, 1, p.z); sfx.thud(0.8); }
+    else if (p.kind === 'bike') { for (let i = 0; i < 5; i++) fx.spawn('spark', p.x, 0.6, p.z); sfx.clang(0.5); }
+    else if (p.kind === 'bench') { for (let i = 0; i < 5; i++) fx.spawn('dust', p.x, 0.5, p.z); sfx.thud(0.6); }
+    else if (p.kind === 'hydrant') { geysers.push({ x: p.x, z: p.z, t: 25, p }); sfx.splash(); sfx.clang(0.7); }
+  }
+  scarePeds(p.x, p.z, 10); scareBirds(p.x, p.z, 25);
+  if (byPlayer && src !== 'car' && R() < 0.3) { const w = peds.find(q => q.state === 'walk' && d2(q.pos.x, q.pos.z, p.x, p.z) < 15 * 15); if (w) shout(w, pR(['Vàndal!', 'Ei! Què fas?', 'Incivic!'])); }
+}
+function restoreProp(p) {
+  p.broken = false; p.refs.forEach(([im, i], j) => { im.setMatrixAt(i, p.saved[j]); im.instanceMatrix.needsUpdate = true; });
+  if (p.kind === 'lamp') setCorona(p.idx, true);
+  for (let i = geysers.length - 1; i >= 0; i--) if (geysers[i].p === p) geysers.splice(i, 1);
+}
+function setCorona(i, on) { if (!lampCoronaGeo) return; const a = lampCoronaGeo.attributes.position; a.setY(i, on ? CURB + 6.45 : -500); a.needsUpdate = true; if (poolIM) { if (!on) { poolIM.getMatrixAt(i, _m4); poolSaved[i] = _m4.clone(); poolIM.setMatrixAt(i, _zero); } else if (poolSaved[i]) poolIM.setMatrixAt(i, poolSaved[i]); poolIM.instanceMatrix.needsUpdate = true; } }
+const poolSaved = {};
+let propCheckT = 0;
+function updateProps(dt) {
+  updateDebris(dt);
+  for (let i = geysers.length - 1; i >= 0; i--) {
+    const g = geysers[i]; g.t -= dt; if (g.t <= 0) { geysers.splice(i, 1); continue; }
+    if (d2(g.x, g.z, camera.position.x, camera.position.z) < 200 * 200) for (let k = 0; k < 3; k++) fx.spawn('water', g.x, CURB + 0.6, g.z);
+    for (const p of peds) if (p.state === 'walk' && d2(p.pos.x, p.pos.z, g.x, g.z) < 9) { p.state = 'flee'; p.timer = 5; shout(p, pR(['Aigua!', 'Uf, quin xàfec!'])); }
+    const v = player.car; if (v && !v.air && d2(v.pos.x, v.pos.z, g.x, g.z) < 2.2 * 2.2) { v.air = true; v.yv = 11; sfx.splash(); }
+  }
+  propCheckT -= dt; if (propCheckT > 0) return; propCheckT = 1;
+  for (const p of props) if (p.broken && now - p.brokenAt > 90000 && d2(p.x, p.z, player.pos.x, player.pos.z) > 220 * 220) restoreProp(p);
+}
+function propCollideVehicle(v) {
+  const t = v.t, s = Math.sin(v.heading), c = Math.cos(v.heading);
+  for (const p of propsNear(v.pos.x, v.pos.z, 4)) {
+    if (p.broken) continue;
+    const dx = p.x - v.pos.x, dz = p.z - v.pos.z, al = dx * s + dz * c, sd = -dx * c + dz * s;
+    if (Math.abs(al) > t.len / 2 + p.r || Math.abs(sd) > t.wid / 2 + p.r || v.pos.y > 2.5 + groundH(p.x, p.z)) continue;
+    const sp = Math.hypot(v.vx, v.vz);
+    if (sp > p.k.brk * (t.mass > 1.5 ? 0.6 : 1)) {
+      breakProp(p, v.vx, v.vz, v.driver === 'player', 'car'); v.vx *= p.k.slow; v.vz *= p.k.slow; v.damage(p.k.dmg);
+      if (v.driver === 'player') cam.shake = Math.max(cam.shake, 0.22);
+    } else {
+      const pa = t.len / 2 + p.r - Math.abs(al), pw = t.wid / 2 + p.r - Math.abs(sd);
+      if (pa < pw) { const k = -Math.sign(al) * pa; v.pos.x += s * k; v.pos.z += c * k; } else { const k = -Math.sign(sd) * pw; v.pos.x += -c * k; v.pos.z += s * k; }
+      v.vx *= 0.5; v.vz *= 0.5;
+    }
+  }
+}
+function propCollideCircle(pos, r) {
+  for (const p of propsNear(pos.x, pos.z, r + 1)) {
+    if (p.broken) continue; const dx = pos.x - p.x, dz = pos.z - p.z, d = Math.hypot(dx, dz), m = r + p.r;
+    if (d < m && d > 1e-4) { pos.x += dx / d * (m - d); pos.z += dz / d * (m - d); }
+  }
+}
+function registerProps() {
+  lampSpots.forEach((sp, i) => addProp('lamp', sp[0], sp[1], [[lampPoleIM, i], [lampHeadIM, i]], { idx: i }));
+  benchSpots.forEach((sp, i) => addProp('bench', sp[0], sp[1], [[benchIM, i]]));
+  binSpots.forEach((sp, i) => addProp('bin', sp[0], sp[1], [[binIM, i]], { color: sp[3] }));
+  bikeSpots.forEach((sp, i) => addProp('bike', sp[0], sp[1], [[bikeIM, i]]));
+  hydrantSpots.forEach((sp, i) => addProp('hydrant', sp[0], sp[1], [[hydrantIM, i]]));
+}
+
+// ---------- speech bubbles ----------
+const bubbleTex = {};
+function getBubbleTex(text) {
+  if (bubbleTex[text]) return bubbleTex[text];
+  const t = canvasTex(256, 72, g => {
+    g.font = "bold 30px 'Barlow Condensed', Arial, sans-serif"; const w = Math.min(244, g.measureText(text).width + 30), x = (256 - w) / 2;
+    g.fillStyle = 'rgba(255,255,255,0.94)'; g.strokeStyle = '#111'; g.lineWidth = 3;
+    g.beginPath(); g.moveTo(x + 10, 4); g.lineTo(x + w - 10, 4); g.quadraticCurveTo(x + w, 4, x + w, 14); g.lineTo(x + w, 44); g.quadraticCurveTo(x + w, 54, x + w - 10, 54); g.lineTo(140, 54); g.lineTo(128, 68); g.lineTo(122, 54); g.lineTo(x + 10, 54); g.quadraticCurveTo(x, 54, x, 44); g.lineTo(x, 14); g.quadraticCurveTo(x, 4, x + 10, 4); g.closePath(); g.fill(); g.stroke();
+    g.fillStyle = '#111'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(text, 128, 30);
+  }, false);
+  return (bubbleTex[text] = t);
+}
+const bubbles = [];
+function shout(who, text) {
+  if (!who || !who.pos || d2(who.pos.x, who.pos.z, player.pos.x, player.pos.z) > 45 * 45) return;
+  if (who.bubble && who.bubble.t > 0.6) return;
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: getBubbleTex(text), transparent: true, depthWrite: false, fog: false })); s.scale.set(2.6, 0.73, 1); s.renderOrder = 5; scene.add(s);
+  const b = { s, who, t: 2.2 }; who.bubble = b; bubbles.push(b);
+  if (bubbles.length > 8) { const o = bubbles.shift(); scene.remove(o.s); o.s.material.dispose(); }
+  if (AU.ctx) { const t0 = AU.ctx.currentTime, f = who.h && who.h.voice || 180; for (let i = 0; i < Math.min(5, text.length / 2); i++) tone(t0 + i * 0.07, f * rR(0.9, 1.3), 0.06, 'triangle', 0.035 * clamp(1 - Math.sqrt(d2(who.pos.x, who.pos.z, player.pos.x, player.pos.z)) / 40, 0, 1)); }
+}
+function updateBubbles(dt) {
+  for (let i = bubbles.length - 1; i >= 0; i--) {
+    const b = bubbles[i]; b.t -= dt;
+    if (b.t <= 0 || !b.who.h || !b.who.h.g.parent) { scene.remove(b.s); b.s.material.dispose(); bubbles.splice(i, 1); continue; }
+    const lying = b.who.state === 'down' || b.who.state === 'dead';
+    b.s.position.set(b.who.pos.x, b.who.pos.y + (lying ? 1.0 : 2.45), b.who.pos.z); b.s.material.opacity = Math.min(1, b.t / 0.35);
+  }
+}
+const SAY = { hurt: ['Ai!', 'Ei!', 'Què fas?!', 'Ajuda!', 'Boig!', 'Para!', 'Policia!'], fight: ['Vine aquí!', 'Ara veuràs!', 'Mira per on vas!', 'Què has dit?', 'Fora!'], car: ['Compte!', 'Ei, el cotxe!', 'Animal!', 'Frena!'], thief: ['Al lladre!', 'La meva bossa!', 'Atureu-lo!'], cop: ['Alto, policia!', 'Quiet!', 'A terra!', 'No et moguis!'], steal: ['El meu cotxe!', 'Torna-me\'l!', 'Lladre!'], chat: ['I el Barça?', 'Quina calor...', 'Has vist el preu dels pisos?', 'Bon dia!', 'Ens veiem!', 'Que vagi bé!'] };
+
+// ---------- melee: combos, bat, props ----------
+const MELEE = { jab: { dmg: 9, reach: 1.9, arc: 1.0, dur: 0.32, ko: false }, cross: { dmg: 12, reach: 1.9, arc: 1.0, dur: 0.36, ko: false }, kick: { dmg: 18, reach: 2.2, arc: 1.1, dur: 0.5, ko: true }, bat: { dmg: 32, reach: 2.5, arc: 1.5, dur: 0.55, ko: true } };
+player.atk = null; player.combo = 0; player.lastHit = -9; player.hasBat = false;
+function meleeAttack() {
+  if (player.atk) return;
+  let kind;
+  if (player.weapon === 2) kind = 'bat';
+  else { player.combo = now - player.lastHit < 900 ? (player.combo + 1) % 3 : 0; kind = ['jab', 'cross', 'kick'][player.combo]; }
+  player.lastHit = now; const m = MELEE[kind]; player.atk = { kind, t: 0, dur: m.dur, hit: false };
+}
+function meleeImpact(kind) {
+  const m = MELEE[kind], px = player.pos.x, pz = player.pos.z; let any = false;
+  for (const p of peds) {
+    if (p.state === 'dead' || p.state === 'down') continue;
+    const dx = p.pos.x - px, dz = p.pos.z - pz, d = Math.hypot(dx, dz);
+    if (d > m.reach || Math.abs(wrapA(Math.atan2(dx, dz) - player.heading)) > m.arc) continue;
+    any = true; hitPed(p, dx / (d || 1), dz / (d || 1), m.dmg, m.ko, true);
+    if (kind !== 'bat') break;
+  }
+  for (const pr of propsNear(px, pz, m.reach + 1)) {
+    if (pr.broken) continue; const dx = pr.x - px, dz = pr.z - pz, d = Math.hypot(dx, dz);
+    if (d > m.reach + pr.r || Math.abs(wrapA(Math.atan2(dx, dz) - player.heading)) > m.arc) continue;
+    if (kind === 'bat' || (kind === 'kick' && pr.k.melee === 'kick')) { breakProp(pr, dx / (d || 1) * 5, dz / (d || 1) * 5, true, 'melee'); any = true; }
+    else { sfx.clang(0.3); any = true; }
+  }
+  for (const v of vehicles) {
+    if (v.dead || v === player.car) continue; const dx = v.pos.x - px, dz = v.pos.z - pz, d = Math.hypot(dx, dz);
+    if (d > m.reach + v.t.wid * 0.6 || Math.abs(wrapA(Math.atan2(dx, dz) - player.heading)) > m.arc) continue;
+    v.damage(kind === 'bat' ? 60 : 15, 'player'); any = true; sfx.clang(0.5); if (!v.driver) v.alarmT = 10;
+    if (v.driver === 'ai' && R() < 0.4) { const ped = ejectDriver(v, false); v.driver = null; v.ai = null; ped.state = 'fight'; ped.target = 'player'; ped.timer = 14; shout(ped, pR(SAY.fight)); }
+    break;
+  }
+  if (any) { if (kind === 'bat') sfx.thud(0.9); else sfx.punch(); cam.shake = Math.max(cam.shake, kind === 'bat' ? 0.25 : 0.12); }
+  else sfx.whoosh();
+}
+function hitPed(p, nx, nz, dmg, ko, byPlayer) {
+  p.health -= dmg;
+  for (let i = 0; i < 2; i++) fx.spawn('hit', p.pos.x, p.pos.y + 1.4, p.pos.z);
+  if (byPlayer) { crime(p.cop ? 'hitcop' : 'hurt', p.pos.x, p.pos.z); if (!p.dropped && R() < 0.35) { p.dropped = true; addPickup('money', p.pos.x, p.pos.z, { amount: Math.floor(rR(5, 40)), ttl: 30 }); } }
+  if (p.health <= 0 || ko) { const was = p.health; p.health = Math.min(p.health, Math.max(p.health, 1)); if (was <= 0) p.health = was; knockPed(p, nx * (ko ? 7 : 4), nz * (ko ? 7 : 4), 0, false); if (byPlayer) { game.stats.ko++; crime(was <= 0 ? 'kill' : 'hurt', p.pos.x, p.pos.z); } shout(p, pR(SAY.hurt)); return; }
+  p.prev = p.state === 'fight' || p.state === 'cop' ? p.state : p.prev; p.state = 'stagger'; p.timer = 0.45; p.vx = nx * 3.5; p.vz = nz * 3.5; p.attacker = byPlayer ? 'player' : p.attacker;
+  shout(p, pR(SAY.hurt));
+}
+const batGeo = new THREE.CylinderGeometry(0.045, 0.026, 0.86, 8); batGeo.translate(0, 0.43, 0);
+const batMat = new THREE.MeshPhongMaterial({ color: 0xb98a55, specular: 0x333333, shininess: 40 });
+const gunGeo = new THREE.BoxGeometry(0.06, 0.12, 0.24); gunGeo.translate(0, 0, 0.08);
+const gunMat = new THREE.MeshPhongMaterial({ color: 0x1a1a1c, specular: 0x777777, shininess: 80 });
+function attachHeld() {
+  const h = player.human; if (!h || h.held) return;
+  const bat = new THREE.Mesh(batGeo, batMat); bat.position.set(0, -0.3, 0.02); bat.rotation.x = Math.PI / 2 + 0.3; bat.castShadow = true; h.elbowR.add(bat);
+  const gun = new THREE.Mesh(gunGeo, gunMat); gun.position.set(0, -0.32, 0.04); gun.rotation.x = Math.PI / 2; h.elbowR.add(gun);
+  h.held = { bat, gun };
+}
+function updateHeld() { const h = player.human; if (!h || !h.held) return; h.held.bat.visible = player.weapon === 2; h.held.gun.visible = player.weapon === 1; }
+function animAttack(h, atk) {
+  const t = atk.t / atk.dur, s = Math.sin(t * Math.PI);
+  if (atk.kind === 'jab') { h.armR.rotation.x = -1.55 * s - 0.1; h.elbowR.rotation.x = -1.3 * (1 - s); h.body.rotation.y = -0.25 * s; }
+  else if (atk.kind === 'cross') { h.armL.rotation.x = -1.55 * s - 0.1; h.elbowL.rotation.x = -1.3 * (1 - s); h.body.rotation.y = 0.35 * s; }
+  else if (atk.kind === 'kick') { h.legR.rotation.x = -1.7 * s; h.kneeR.rotation.x = 0.9 * (1 - s); h.legL.rotation.x = 0.15 * s; h.body.rotation.x = -0.2 * s; h.armL.rotation.x = 0.6 * s; }
+  else if (atk.kind === 'bat') { const w = t < 0.35 ? t / 0.35 : 1 - (t - 0.35) / 0.65; h.armR.rotation.x = -1.4; h.elbowR.rotation.x = -0.4; h.body.rotation.y = lerp(1.0, -1.1, t < 0.35 ? 0 : (t - 0.35) / 0.4); h.armR.rotation.z = 0.5 * w; h.armL.rotation.x = -1.2; }
+}
+function updatePlayerAttack(dt) {
+  const a = player.atk; if (!a) return;
+  a.t += dt;
+  const impactAt = a.kind === 'bat' ? 0.45 : 0.5;
+  if (!a.hit && a.t / a.dur >= impactAt) { a.hit = true; meleeImpact(a.kind); }
+  if (a.t >= a.dur) { player.atk = null; const h = player.human; h.body.rotation.x = 0; h.armR.rotation.z = 0.08; }
+}
+
+// ---------- pedestrian behaviours ----------
+function moveFree(p, tx, tz, speed, dt, away) {
+  let want = Math.atan2(tx - p.pos.x, tz - p.pos.z); if (away) want += Math.PI;
+  p.heading += wrapA(want - p.heading) * Math.min(1, dt * 6);
+  p.pos.x += Math.sin(p.heading) * speed * dt; p.pos.z += Math.cos(p.heading) * speed * dt;
+  const hit = collideWorld(p.pos.x, p.pos.z, 0.4, p.pos.y + 0.5); if (hit) { p.pos.x += hit[0]; p.pos.z += hit[1]; if (away) p.heading += 0.8; }
+  propCollideCircle(p.pos, 0.4);
+  p.pos.y = surfH(p.pos.x, p.pos.z); p.phase += dt * speed * 2.6; animHuman(p.h, p.phase, speed > 3 ? 1.3 : 1, 0); p.h.g.rotation.set(0, p.heading, 0);
+}
+function targetPos(t) { return t === 'player' ? player.pos : t && t.pos; }
+function pedPunch(p, dt) {
+  p.atkT = (p.atkT || 0) - dt; if (p.atkT > 0) { const k = 1 - p.atkT / 0.9; if (k < 0.4) { const s = Math.sin(k / 0.4 * Math.PI); p.h.armR.rotation.x = -1.5 * s - 0.1; p.h.elbowR.rotation.x = -1.2 * (1 - s); } return false; }
+  p.atkT = rR(0.8, 1.2); return true;
+}
+// returns true if the ped was removed
+function updatePedBehaviour(p, dt, far) {
+  const st = p.state;
+  if (st === 'stagger') {
+    p.timer -= dt; p.pos.x += p.vx * dt; p.pos.z += p.vz * dt; p.vx *= Math.exp(-6 * dt); p.vz *= Math.exp(-6 * dt);
+    const hit = collideWorld(p.pos.x, p.pos.z, 0.4); if (hit) { p.pos.x += hit[0]; p.pos.z += hit[1]; }
+    p.pos.y = surfH(p.pos.x, p.pos.z); animHuman(p.h, 0, 0, 0); p.h.g.rotation.set(-0.3 * Math.sin(p.timer / 0.45 * Math.PI), p.heading, 0);
+    if (p.timer <= 0) {
+      p.h.g.rotation.x = 0;
+      if (p.cop && wantedLevel() > 0) p.state = 'cop';
+      else if (p.prev === 'fight' || ((p.tough || p.prev === 'cop') && p.attacker === 'player' && !player.car)) { p.state = 'fight'; p.target = p.prev === 'fight' && p.target ? p.target : 'player'; p.timer = 15; if (p.target === 'player') shout(p, pR(SAY.fight)); }
+      else { p.state = 'flee'; p.timer = 8; const tp = targetPos(p.attacker || 'player'); if (tp) p.heading = Math.atan2(p.pos.x - tp.x, p.pos.z - tp.z); }
+      p.prev = null;
+    }
+    return false;
+  }
+  if (st === 'fight') {
+    const tp = targetPos(p.target); p.timer -= dt;
+    const invalid = !tp || (p.target === 'player' ? (player.dead || player.car) : (p.target.state === 'down' || p.target.state === 'dead' || !p.target.h.g.parent));
+    if (invalid || p.timer <= 0 || d2(tp.x, tp.z, p.pos.x, p.pos.z) > 35 * 35) { p.state = 'flee'; p.timer = 6; p.calm = true; if (p.target !== 'player' && p.target && (p.target.state === 'down' || p.target.state === 'dead')) shout(p, pR(['I no tornis!', 'Això et passa per llest!'])); return false; }
+    const d = Math.hypot(tp.x - p.pos.x, tp.z - p.pos.z);
+    if (d > 1.15) moveFree(p, tp.x, tp.z, d > 4 ? 4.2 : 2, dt);
+    else {
+      p.heading = Math.atan2(tp.x - p.pos.x, tp.z - p.pos.z); p.h.g.rotation.set(0, p.heading, 0); animHuman(p.h, 0, 0, 0); p.h.armL.rotation.x = -0.9; p.h.elbowL.rotation.x = -1.6;
+      if (pedPunch(p, dt)) {
+        sfx.punch();
+        if (p.target === 'player') { hurtPlayer(rR(4, 8), p.pos.x, p.pos.z); fx.spawn('hit', player.pos.x, player.pos.y + 1.4, player.pos.z); }
+        else { const t = p.target; const nx = (t.pos.x - p.pos.x) / (d || 1), nz = (t.pos.z - p.pos.z) / (d || 1); hitPed(t, nx, nz, rR(6, 11), t.health < 12, false); if (t.state === 'stagger') { t.attacker = p; t.prev = 'fight'; t.target = p; } }
+      }
+    }
+    return false;
+  }
+  if (st === 'cop') {
+    if (wantedLevel() === 0 || far > 120 * 120) { p.state = 'flee'; p.timer = 3; p.calm = true; return false; }
+    const tg = player.car ? player.car.pos : player.pos, d = Math.hypot(tg.x - p.pos.x, tg.z - p.pos.z);
+    if (player.car && d > 30) { p.state = 'flee'; p.timer = 3; p.calm = true; return false; }
+    if (d > 1.3) moveFree(p, tg.x, tg.z, d > 6 ? 6.2 : 3, dt);
+    else { p.heading = Math.atan2(tg.x - p.pos.x, tg.z - p.pos.z); animHuman(p.h, 0, 0, 0); p.h.g.rotation.set(0, p.heading, 0); if (!player.car && pedPunch(p, dt)) { hurtPlayer(4, p.pos.x, p.pos.z); sfx.punch(); } }
+    p.shootT = (p.shootT || 2) - dt;
+    if (wantedLevel() >= 2 && d > 4 && d < 24 && p.shootT < 0) {
+      p.shootT = rR(1.1, 1.7); p.h.armR.rotation.x = -Math.PI / 2;
+      if (los(p.pos.x, p.pos.z, tg.x, tg.z, 1.5)) { const hit = R() < 0.35; tracer(p.pos.x, p.pos.y + 1.45, p.pos.z, tg.x + (hit ? 0 : rR(-1.5, 1.5)), tg.y + 1.2, tg.z + (hit ? 0 : rR(-1.5, 1.5)), 0xffd0a0); if (AU.ctx) noiseHit(AU.ctx.currentTime, 0.15, 1500, 0.7, 0.3, 'lowpass'); if (hit) { if (player.car) player.car.damage(20); else hurtPlayer(6, p.pos.x, p.pos.z); } }
+    }
+    if (R() < dt * 0.25) shout(p, pR(SAY.cop));
+    return false;
+  }
+  if (st === 'thief') {
+    const vic = p.target, from = vic && vic.pos ? vic.pos : player.pos;
+    moveFree(p, from.x, from.z, 6.3, dt, true); p.timer -= dt;
+    if (p.timer < 0 && far > 70 * 70) { removePed(p); return true; }
+    return false;
+  }
+  if (st === 'chase') {
+    const t = p.target; if (!t || !t.h.g.parent || t.state === 'down' || t.state === 'dead' || d2(t.pos.x, t.pos.z, p.pos.x, p.pos.z) > 45 * 45) { p.state = 'flee'; p.timer = 4; p.calm = true; if (t && (t.state === 'down' || t.state === 'dead')) shout(p, pR(['Gràcies!', 'Ben fet!'])); return false; }
+    moveFree(p, t.pos.x, t.pos.z, 5.4, dt); if (R() < dt * 0.4) shout(p, pR(SAY.thief));
+    return false;
+  }
+  if (st === 'idle' || st === 'watch') {
+    p.timer -= dt; animHuman(p.h, 0, 0, 0);
+    const ph = now * 0.003 + p.phase;
+    if (st === 'idle') { p.h.armR.rotation.x = -0.35 - 0.35 * Math.max(0, Math.sin(ph * 1.7)); p.h.elbowR.rotation.x = -1.1 - 0.3 * Math.sin(ph * 2.3); if (R() < dt * 0.03) shout(p, pR(SAY.chat)); }
+    else { p.h.armR.rotation.x = -0.5 * Math.max(0, Math.sin(ph * 4)); if (R() < dt * 0.1) shout(p, pR(['Uooo!', 'Dóna-li!', 'Prou, prou!', 'Truqueu la policia!'])); }
+    if (p.face !== undefined) { p.heading += wrapA(p.face - p.heading) * Math.min(1, dt * 4); p.h.g.rotation.set(0, p.heading, 0); }
+    if (p.timer <= 0) { if (p.loop) { p.state = 'walk'; } else { p.state = 'flee'; p.timer = 4; p.calm = true; } }
+    return false;
+  }
+  if (st === 'perform') { performAnim(p, dt); return false; }
+  return false;
+}
+function performAnim(p, dt) {
+  const h = p.h, t = now * 0.001 + p.phase;
+  animHuman(h, 0, 0, 0); h.g.rotation.set(0, p.heading, 0);
+  if (p.act === 'statue') { const bow = p.bowT > 0 ? Math.sin((1 - p.bowT / 2) * Math.PI) : 0; p.bowT = (p.bowT || 0) - dt; h.armR.rotation.x = -2.7 + bow * 2; h.armL.rotation.x = -0.4; h.body.rotation.x = bow * 0.6;
+    if (p.bowT < -6 && d2(player.pos.x, player.pos.z, p.pos.x, p.pos.z) < 6 * 6 && !player.car) { p.bowT = 2; shout(p, pR(['Gràcies!', '...', 'Una moneda?'])); } }
+  else if (p.act === 'busker') { h.legL.rotation.x = h.legR.rotation.x = -1.45; h.kneeL.rotation.x = h.kneeR.rotation.x = 1.5; h.body.position.y = -0.45; h.armR.rotation.x = -0.6 + 0.18 * Math.sin(t * 22); h.elbowR.rotation.x = -1.3; h.armL.rotation.x = -1.0; h.elbowL.rotation.x = -1.5; }
+  else if (p.act === 'dancer') { h.armL.rotation.x = -2.2 + Math.sin(t * 6.5) * 0.7; h.armR.rotation.x = -2.2 - Math.sin(t * 6.5) * 0.7; h.elbowL.rotation.x = h.elbowR.rotation.x = -0.6; h.body.rotation.y = Math.sin(t * 3.25) * 0.7; h.body.position.y = Math.abs(Math.sin(t * 6.5)) * 0.08; h.legL.rotation.x = -Math.max(0, Math.sin(t * 6.5)) * 0.6; h.kneeL.rotation.x = -h.legL.rotation.x * 1.4; h.legR.rotation.x = -Math.max(0, -Math.sin(t * 6.5)) * 0.6; h.kneeR.rotation.x = -h.legR.rotation.x * 1.4; }
+}
+
+// ---------- street events ----------
+let eventT = 12;
+function walkingPedsNear(minD, maxD) { return peds.filter(q => q.state === 'walk' && !q.cop && !q.fixed && (() => { const d = d2(q.pos.x, q.pos.z, player.pos.x, player.pos.z); return d > minD * minD && d < maxD * maxD; })()); }
+function startPedFight() {
+  const cand = walkingPedsNear(8, 55); for (const a of cand) {
+    const b = cand.find(q => q !== a && d2(q.pos.x, q.pos.z, a.pos.x, a.pos.z) < 14 * 14); if (!b) continue;
+    a.state = b.state = 'fight'; a.target = b; b.target = a; a.timer = b.timer = 20; game.stats.fights++;
+    shout(a, pR(SAY.fight)); setTimeout(() => shout(b, pR(SAY.fight)), 900);
+    const mx = (a.pos.x + b.pos.x) / 2, mz = (a.pos.z + b.pos.z) / 2;
+    for (const w of peds) if (w.state === 'walk' && !w.fixed && d2(w.pos.x, w.pos.z, mx, mz) < 18 * 18 && R() < 0.6) { w.state = 'watch'; w.timer = rR(8, 14); w.face = Math.atan2(mx - w.pos.x, mz - w.pos.z); }
+    return true;
+  }
+  return false;
+}
+function startSnatch() {
+  const cand = walkingPedsNear(10, 60); for (const a of cand) {
+    const b = cand.find(q => q !== a && d2(q.pos.x, q.pos.z, a.pos.x, a.pos.z) < 6 * 6); if (!b) continue;
+    a.state = 'thief'; a.target = b; a.timer = 12; a.thief = true; a.heading = Math.atan2(a.pos.x - b.pos.x, a.pos.z - b.pos.z);
+    b.state = 'chase'; b.target = a; shout(b, pR(SAY.thief)); game.stats.snatch++;
+    if (d2(a.pos.x, a.pos.z, player.pos.x, player.pos.z) < 45 * 45) toast('A bag snatcher! Knock him down for a reward.', 3500);
+    return true;
+  }
+  return false;
+}
+function spawnGroup() {
+  const px = player.pos.x, pz = player.pos.z, ls = loopHash.query(px - 60, pz - 60, px + 60, pz + 60, []); if (!ls.length) return false;
+  const l = pR(ls), t = R() * l.tot; loopPoint(l, t, _lp); if (d2(_lp[0], _lp[1], px, pz) < 20 * 20) return false;
+  const n = 2 + (R() < 0.4 ? 1 : 0), cx = _lp[0], cz = _lp[1];
+  for (let i = 0; i < n; i++) {
+    const a = i / n * TAU + R(), x = cx + Math.cos(a) * 0.75, z = cz + Math.sin(a) * 0.75;
+    const h = makeHuman(randomLook()); const p = newPed(h, x, z, l.y, l, t); p.state = 'idle'; p.timer = rR(25, 60); p.face = Math.atan2(cx - x, cz - z); p.heading = p.face;
+  }
+  return true;
+}
+function newPed(h, x, z, yOff, loop, t) {
+  const p = { h, pos: new THREE.Vector3(x, groundH(x, z) + (yOff || 0), z), heading: 0, loop, t: t || 0, dir: R() < 0.5 ? 1 : -1, speed: rR(1.15, 1.6) * h.gait, state: 'walk', health: 40, timer: 0, phase: R() * 6, vx: 0, vz: 0, vy: 0, dropped: false, tough: h.gait >= 0.9 && R() < 0.22 };
+  h.voice = rR(140, 260); peds.push(p); return p;
+}
+function updateEvents(dt) {
+  eventT -= dt; if (eventT > 0) return;
+  eventT = rR(14, 28);
+  if (player.car && Math.abs(player.car.speed) > 18) return;
+  const r = R(); (r < 0.35 ? startPedFight() : r < 0.65 ? startSnatch() : spawnGroup()) || spawnGroup();
+}
+// police get out of their cars when you are on foot
+function updateFootCops() {
+  if (wantedLevel() === 0 || player.car) return;
+  let n = 0; for (const p of peds) if (p.cop && p.state === 'cop') n++;
+  if (n >= 4) return;
+  for (const v of vehicles) {
+    if (v.driver !== 'cop' || !v.ai || v.ai.mode !== 'cop' || v.copOut || v.dead) continue;
+    if (d2(v.pos.x, v.pos.z, player.pos.x, player.pos.z) < 26 * 26 && Math.abs(v.speed) < 2.5) {
+      v.copOut = true; v.ai = { mode: 'idle' };
+      for (let k = 0; k < (wantedLevel() > 1 ? 2 : 1) && n < 4; k++, n++) { const c = ejectDriver(v, true); c.state = 'cop'; c.health = 60; c.cop = true; if (k) { c.pos.x -= Math.cos(v.heading) * 2.4; c.pos.z += Math.sin(v.heading) * 2.4; } shout(c, pR(SAY.cop)); }
+      break;
+    }
+  }
+}
+function footCopNear(x, z, r) { for (const p of peds) if (p.cop && p.state === 'cop' && d2(p.pos.x, p.pos.z, x, z) < r * r) return p; return null; }
+
+// ---------- performers on La Rambla ----------
+const PERFORMERS = [{ act: 'statue', x: -160, z: 276, h: 0 }, { act: 'busker', x: -158.5, z: 318, h: Math.PI / 2 }, { act: 'dancer', x: -161, z: 322, h: Math.PI / 2 }];
+let perfT = 0;
+function updatePerformers(dt) {
+  perfT -= dt; if (perfT > 0) return; perfT = 2;
+  for (const pf of PERFORMERS) {
+    if (pf.ped && pf.ped.h.g.parent && pf.ped.state === 'perform') continue;
+    if (pf.ped && pf.ped.h.g.parent) continue;              // knocked over or fled: wait until it despawns
+    if (d2(pf.x, pf.z, player.pos.x, player.pos.z) < 90 * 90 && pf.ped) continue;
+    const look = pf.act === 'statue' ? { skin: '#c9a24a', shirt: '#c9a24a', pants: '#c9a24a', hair: '#b8923a', hairStyle: 'short', shoes: '#b8923a', cap: '#c9a24a', build: 1.05 } : pf.act === 'busker' ? Object.assign(randomLook(), { hairStyle: 'curly', jacket: '#5a3a22' }) : Object.assign(randomLook(), { shirt: '#d6372b', skirt: null, shorts: false });
+    const h = makeHuman(look); const p = newPed(h, pf.x, pf.z, CURB, null, 0); p.state = 'perform'; p.act = pf.act; p.heading = pf.h; p.fixed = true; p.pos.y = CURB + (pf.act === 'statue' ? 0.6 : 0); pf.ped = p;
+    if (!pf.prop) {
+      if (pf.act === 'statue') pf.prop = mesh(new THREE.BoxGeometry(0.9, 0.6, 0.9), lam('#8f877a'), pf.x, CURB + 0.3, pf.z);
+      else if (pf.act === 'busker') { pf.prop = mesh(new THREE.BoxGeometry(0.5, 0.42, 0.5), lam('#5a4a3a'), pf.x - 0.15, CURB + 0.21, pf.z); const gtr = mesh(new THREE.BoxGeometry(0.12, 0.42, 0.85), lam('#b07a3a'), pf.x + 0.18, CURB + 0.95, pf.z); gtr.rotation.x = 0.9; gtr.rotation.y = Math.PI / 2; pf.gtr = gtr; const hat = mesh(new THREE.CylinderGeometry(0.18, 0.15, 0.08, 10), lam('#2a2420'), pf.x + 0.9, CURB + 0.04, pf.z); }
+    }
+  }
+}
+const busk = { next: 0, step: 0 };
+function buskerMusic() {
+  if (!AU.ctx || !AU.busk) return;
+  const pf = PERFORMERS[1], ok = pf.ped && pf.ped.state === 'perform' && pf.ped.h.g.parent;
+  const d = Math.hypot(player.pos.x - pf.x, player.pos.z - pf.z), c = AU.ctx;
+  AU.busk.gain.setTargetAtTime(ok && !player.car ? 0.5 * clamp(1 - d / 32, 0, 1) : 0, c.currentTime, 0.2);
+  if (!ok || d > 34) { busk.next = 0; return; }
+  const spb = 60 / 120 / 4; if (busk.next < c.currentTime) busk.next = c.currentTime + 0.05;
+  while (busk.next < c.currentTime + 0.25) {
+    const bar = Math.floor(busk.step / 16) % 4, i = busk.step % 16, ch = [[57, 60, 64, 69], [55, 59, 62, 67], [53, 57, 60, 65], [52, 56, 59, 64]][bar];
+    if ([0, 3, 6, 8, 11, 14].includes(i)) { const down = [0, 6, 8, 14].includes(i); ch.forEach((m, k) => tone(busk.next + (down ? k : 3 - k) * 0.014, mtof(m), 0.45, 'sawtooth', down ? 0.05 : 0.03, AU.busk, null, 2200)); }
+    if ([4, 12].includes(i)) noiseHit(busk.next, 0.05, 1800, 1, 0.08, 'bandpass', AU.busk);
+    busk.step = (busk.step + 1) % 64; busk.next += spb;
+  }
+}
+
+// ---------- pigeons and gulls ----------
+const FLOCKS = [[-150, 166, 'pigeon'], [-160, 350, 'pigeon'], [-124, 356, 'pigeon'], [-55, 308, 'pigeon'], [240, -280, 'pigeon'], [-100, -716, 'pigeon'], [420, 480, 'gull'], [-60, 470, 'gull']];
+const birds = []; let birdIM;
+function buildBirds() {
+  const geo = mergeColored([[G.sph, '#ffffff', 0, 0.13, 0, 0.09, 0.08, 0.15], [G.sph, '#ffffff', 0, 0.21, 0.12, 0.055, 0.055, 0.055], [G.box, '#e8e8e8', 0, 0.16, -0.02, 0.4, 0.012, 0.11], [G.box, '#f2b34a', 0, 0.2, 0.18, 0.02, 0.015, 0.04], [G.box, '#e0e0e0', 0, 0.14, -0.17, 0.08, 0.01, 0.1]]);
+  let n = 0; for (const f of FLOCKS) n += f[2] === 'gull' ? 10 : 22;
+  birdIM = new THREE.InstancedMesh(geo, new THREE.MeshLambertMaterial({ vertexColors: true }), n); birdIM.frustumCulled = false; birdIM.castShadow = false; scene.add(birdIM);
+  const col = new THREE.Color(); let i = 0;
+  for (const [hx, hz, kind] of FLOCKS) {
+    const gull = kind === 'gull', cnt = gull ? 10 : 22;
+    for (let k = 0; k < cnt; k++, i++) {
+      const a = R() * TAU, r = R() * 6, x = hx + Math.cos(a) * r, z = hz + Math.sin(a) * r;
+      birds.push({ i, hx, hz, gull, x, z, y: gull ? rR(15, 30) : surfH(x, z), vx: 0, vy: 0, vz: 0, h: R() * TAU, st: gull ? 'fly' : 'ground', t: R() * 3, ph: R() * 6 });
+      birdIM.setColorAt(i, gull ? col.setRGB(1, 1, 1) : col.setRGB(rR(0.45, 0.62), rR(0.47, 0.64), rR(0.52, 0.7)));
+    }
+  }
+  birdIM.instanceColor.needsUpdate = true;
+}
+function scareBirds(x, z, r) { for (const b of birds) if (b.st === 'ground' && d2(b.x, b.z, x, z) < r * r) takeOff(b, x, z); }
+function takeOff(b, x, z) { const a = Math.atan2(b.x - x, b.z - z) + rR(-0.8, 0.8); b.st = 'fly'; b.vx = Math.sin(a) * 5; b.vz = Math.cos(a) * 5; b.vy = rR(5, 8); b.t = rR(8, 14); if (AU.ctx && R() < 0.15) noiseHit(AU.ctx.currentTime, 0.4, 900, 0.6, 0.06 * clamp(1 - Math.sqrt(d2(b.x, b.z, player.pos.x, player.pos.z)) / 40, 0, 1)); }
+const _bq = new THREE.Quaternion(), _bp = new THREE.Vector3(), _bs = new THREE.Vector3(), _be = new THREE.Euler();
+function updateBirds(dt) {
+  if (!birdIM) return; let dirty = false;
+  const tg = player.car ? player.car.pos : player.pos, fast = player.car ? Math.abs(player.car.speed) > 3 : (keys.ShiftLeft || keys.ShiftRight);
+  for (const b of birds) {
+    if (d2(b.hx, b.hz, tg.x, tg.z) > 220 * 220) continue;
+    dirty = true; b.t -= dt;
+    if (b.st === 'ground') {
+      const dd = d2(b.x, b.z, tg.x, tg.z); if (dd < (fast ? 9 : 3) ** 2) takeOff(b, tg.x, tg.z);
+      if (b.t < 0) { b.t = rR(1, 4); b.h += rR(-1.5, 1.5); b.walk = R() < 0.5 ? rR(0.4, 1) : 0; }
+      if (b.walk) { b.x += Math.sin(b.h) * 0.5 * dt; b.z += Math.cos(b.h) * 0.5 * dt; b.walk -= dt; if (b.walk < 0) b.walk = 0; if (d2(b.x, b.z, b.hx, b.hz) > 64) b.h = Math.atan2(b.hx - b.x, b.hz - b.z); }
+      b.y = surfH(b.x, b.z);
+      _be.set(Math.max(0, Math.sin(now * 0.012 + b.ph)) * 0.5, b.h, 0); _bs.set(0.45, 1, 1);
+    } else {
+      const alt = b.gull ? 22 : 14, cx = b.hx + Math.cos(now * 0.0004 * (b.gull ? 1 : 2) + b.ph) * (b.gull ? 40 : 18), cz = b.hz + Math.sin(now * 0.0004 * (b.gull ? 1 : 2) + b.ph) * (b.gull ? 40 : 18);
+      const landing = !b.gull && b.t < 0 && d2(b.hx, b.hz, tg.x, tg.z) > 14 * 14;
+      const tx = landing ? b.hx + Math.cos(b.ph) * 4 : cx, tz = landing ? b.hz + Math.sin(b.ph) * 4 : cz, ty = landing ? surfH(tx, tz) : alt + Math.sin(b.ph) * 4;
+      b.vx += ((tx - b.x) * 0.25 - b.vx) * dt * 1.2; b.vz += ((tz - b.z) * 0.25 - b.vz) * dt * 1.2; b.vy += ((ty - b.y) * 0.6 - b.vy) * dt * 1.5;
+      const sp = Math.hypot(b.vx, b.vz); if (sp > 9) { b.vx *= 9 / sp; b.vz *= 9 / sp; }
+      b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt; b.h = Math.atan2(b.vx, b.vz);
+      if (landing && b.y - surfH(b.x, b.z) < 0.3) { b.st = 'ground'; b.y = surfH(b.x, b.z); b.t = rR(1, 3); }
+      _be.set(-b.vy * 0.05, b.h, Math.sin(now * 0.002 + b.ph) * 0.2); _bs.set(0.6 + 0.6 * Math.abs(Math.sin(now * (b.gull ? 0.008 : 0.03) + b.ph)), 1, 1);
+    }
+    _bp.set(b.x, b.y, b.z); _bq.setFromEuler(_be); _m4.compose(_bp, _bq, _bs.multiplyScalar(b.gull ? 2 : 1)); birdIM.setMatrixAt(b.i, _m4);
+  }
+  if (dirty) birdIM.instanceMatrix.needsUpdate = true;
+}
+
+// ---------- fireworks over the sea at night ----------
+const rockets = []; let fireT = 4, fwToastDay = -1;
+function fireworkBurst(x, y, z, col) { for (let k = 0; k < 48; k++) { const u = R() * TAU, v = Math.acos(rR(-1, 1)), sp = rR(14, 19); fx.spawn('firework', x, y, z, { col: k % 6 ? col : 0xffffff, vx: Math.sin(v) * Math.cos(u) * sp, vy: Math.cos(v) * sp, vz: Math.sin(v) * Math.sin(u) * sp }); } }
+function updateFireworks(dt) {
+  const h = game.time / 60, on = h >= 22 || h < 1;
+  if (on) {
+    fireT -= dt;
+    if (fireT < 0) { fireT = rR(1.2, 3.5); rockets.push({ x: rR(150, 650), y: 0, z: rR(470, 540), vy: rR(32, 40), fuse: rR(2.3, 3), col: pR([0xff4a3a, 0xffd23a, 0x4ab0ff, 0x6aff7a, 0xff7ae0, 0xffffff]) }); if (AU.ctx) tone(AU.ctx.currentTime, 900, 1.6, 'sine', 0.012, null, 2400);
+      const day = Math.floor(game.time / 1440 + (h < 1 ? -1 : 0)); if (fwToastDay !== day && d2(player.pos.x, player.pos.z, 400, 450) < 900 * 900) { fwToastDay = day; toast('Fireworks over the Barceloneta tonight. Festa major!', 4000); } }
+  }
+  for (let i = rockets.length - 1; i >= 0; i--) {
+    const r = rockets[i]; r.y += r.vy * dt; r.vy -= 9 * dt; r.fuse -= dt;
+    fx.spawn('trail', r.x, r.y, r.z);
+    if (r.fuse <= 0) {
+      rockets.splice(i, 1); fireworkBurst(r.x, r.y, r.z, r.col);
+      const dist = Math.hypot(r.x - player.pos.x, r.z - player.pos.z); if (AU.ctx) { const t0 = AU.ctx.currentTime + dist / 343; noiseHit(t0, 0.9, 220, 0.6, 0.6 * clamp(1 - dist / 1200, 0.05, 1), 'lowpass'); }
+    }
+  }
+}
+// ---------- car alarms ----------
+function updateAlarms(dt) {
+  for (const v of vehicles) {
+    if (!(v.alarmT > 0)) continue; v.alarmT -= dt; v.alarmB = (v.alarmB || 0) - dt;
+    if (v.alarmB < 0 && AU.ctx) { v.alarmB = 0.42; const d = Math.hypot(v.pos.x - player.pos.x, v.pos.z - player.pos.z); if (d < 90) tone(AU.ctx.currentTime, (v.alarmF = v.alarmF === 880 ? 660 : 880), 0.3, 'square', 0.05 * clamp(1 - d / 90, 0, 1)); }
+  }
+}
+function updateLife(dt) {
+  updatePlayerAttack(dt); updateHeld(); updateProps(dt); updateBubbles(dt); updateEvents(dt); updateFootCops(); updatePerformers(dt);
+  updateBirds(dt); updateFireworks(dt); updateAlarms(dt); buskerMusic();
 }
 
 // ====================== MISSIONS ======================
@@ -2391,7 +2906,7 @@ function closeMap() { game.state = 'play'; $('fullmap').hidden = true; }
 $('fullmap').addEventListener('click', closeMap);
 function pause() {
   game.state = 'pause'; $('pause').hidden = false; if (document.exitPointerLock) document.exitPointerLock();
-  $('pause-stats').textContent = `€${player.money.toLocaleString('en')} · ${Math.min(game.mission, MISSIONS.length)} of ${MISSIONS.length} story jobs · ${game.panots.length} of 20 panots · ${district(player.pos.x, player.pos.z)}`;
+  $('pause-stats').textContent = `€${player.money.toLocaleString('en')} · ${Math.min(game.mission, MISSIONS.length)} of ${MISSIONS.length} story jobs · ${game.panots.length} of 20 panots · ${district(player.pos.x, player.pos.z)}. Street record: ${game.stats.props} things smashed, ${game.stats.ko} people knocked down, ${game.stats.fights} brawls witnessed.`;
   $('b-resume').focus();
 }
 function resume() { game.state = 'play'; $('pause').hidden = true; cv.focus(); }
@@ -2410,6 +2925,7 @@ function update(dt) {
   for (let i = vehicles.length - 1; i >= 0; i--) { const v = vehicles[i]; const far = d2(v.pos.x, v.pos.z, player.pos.x, player.pos.z) > 260 * 260; if (!far || v.mission) v.physics(dt); }
   vehicleInteractions(dt);
   updatePeds(dt);
+  updateLife(dt);
   updateTrafficPool(dt);
   updateWanted(dt);
   updatePickups(dt);
@@ -2489,7 +3005,7 @@ function buildWorld() {
   markAcc.mesh(mm, false).renderOrder = 1;
   lineAcc.mesh(new THREE.MeshLambertMaterial({ map: lineTex, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }), false);
   diagAcc.mesh(new THREE.MeshLambertMaterial({ map: diagTex, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }), false);
-  buildInstanced(); buildStars(); buildMapCanvas();
+  buildInstanced(); registerProps(); buildBirds(); buildStars(); buildMapCanvas();
 }
 function boot(hot) {
   buildWorld();
@@ -2507,7 +3023,7 @@ function boot(hot) {
     auInit();
     game.mission = s ? clamp(s.mission | 0, 0, MISSIONS.length) : 0; player.money = s ? Math.max(0, s.money | 0) : 0; player.shownMoney = player.money;
     game.panots = s && Array.isArray(s.panots) ? s.panots.filter(n => Number.isInteger(n)) : [];
-    player.hasPistol = !!(s && s.hasPistol); player.ammo = s ? Math.max(0, s.ammo | 0) : 0; if (s && typeof s.time === 'number') game.time = s.time;
+    player.hasPistol = !!(s && s.hasPistol); player.hasBat = !!(s && s.hasBat); if (s && s.stats) Object.assign(game.stats, s.stats); player.ammo = s ? Math.max(0, s.ammo | 0) : 0; if (s && typeof s.time === 'number') game.time = s.time;
     PANOT_SPOTS.forEach((sp, i) => { if (game.panots.includes(i)) return; const f = freeSpot(sp[0], sp[1], 1); addPickup('panot', f[0], f[1], { id: i }); });
     $('title').hidden = true; $('hud').classList.add('on'); game.state = 'play'; cam.yaw = player.heading;
     refreshGiver(); drawWeaponIcon(); cv.focus();
@@ -2521,10 +3037,12 @@ function boot(hot) {
   // fixed pickups
   addPickup('health', 320, -452); addPickup('health', 230, 408);
   const gp = freeSpot(-300, 300, 1); addPickup('pistol', gp[0], gp[1]);
+  for (const [bx2, bz] of [[-230, 260], [650, 400]]) { const f = freeSpot(bx2, bz, 1); addPickup('bat', f[0], f[1]); }
+  attachHeld();
   try { window.claude && window.claude.hot && window.claude.hot.snapshot && window.claude.hot.snapshot(() => ({ save: saveObj() })); } catch (e) { /* no hot reload */ }
   $('b-new').focus();
   requestAnimationFrame(frame);
-  window.__game = { cam, renderer, setTime: t => { game.time = t; }, step: (n, dt = 1 / 30) => { for (let i = 0; i < n; i++) { now += dt * 1000; update(dt); } updateCamera(0); }, keys, pickups, crime, explode, openMap, closeMap, drawFullmap, player, vehicles, peds, game, mission, MISSIONS, enterExit, startMission, solidAt, groundH, district, spawnTraffic, wantedLevel, setHeat: h => { game.heat = h; } };
+  window.__game = { fireworkBurst, props, breakProp, startPedFight, startSnatch, spawnGroup, birds, meleeAttack, updateFootCops, cam, renderer, setTime: t => { game.time = t; }, step: (n, dt = 1 / 30) => { for (let i = 0; i < n; i++) { now += dt * 1000; update(dt); } updateCamera(0); }, keys, pickups, crime, explode, openMap, closeMap, drawFullmap, player, vehicles, peds, game, mission, MISSIONS, enterExit, startMission, solidAt, groundH, district, spawnTraffic, wantedLevel, setHeat: h => { game.heat = h; } };
 }
 const hot = window.claude && window.claude.hot;
 if (hot && hot.ready) hot.ready(boot); else boot(hot && hot.data ? hot.data : {});
