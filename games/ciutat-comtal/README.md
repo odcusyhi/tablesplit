@@ -7,6 +7,10 @@ in code, so there are no asset files.
 This folder sits outside the tablesplit app. Vite does not build it, ESLint (which only covers
 `*.ts` / `*.tsx`) does not lint it, and Netlify does not deploy it.
 
+## Tests
+
+Browser tests live in `tests/`; see `tests/README.md`.
+
 ## Run locally
 
 Any static file server works:
@@ -35,6 +39,37 @@ npx serve games/ciutat-comtal
 - **Story:** six missions (homecoming, timed deliveries, a pickpocket chase, a checkpoint race
   down the Diagonal, a van theft with a 3-star escape, and a pursuit to Montjuïc castle),
   plus 20 hidden panot collectibles.
+
+## Side jobs and shops
+
+- **Taxi fares:** in a Taxi Comtal, press **T**. Pick up the waving fare (blue blip) and drive them to their destination before the meter runs out.
+  Pay depends on distance and time left, with a €250 bonus every five fares.
+- **Vigilante:** in a police car, press **T**. Wreck fleeing suspects; each level pays more and gives the suspect more speed.
+- **Street races:** blue lights, marked C on the radar. *Volta de l'Eixample* (two laps), *Pujada a Montjuïc* and *Sprint de la Platja*,
+  each against three AI rivals who slow down for corners. Prizes are €2000, €700 and €250 for first to third.
+- **Destrucció:** orange lights, marked D. Smash 25 things in 60 seconds for €1000.
+- **Shops:** green lights, opened by walking in and bought with keys 1–6.
+  - **Bars** (B) restore health.
+  - **Armeria Comtal** (A) sells the pistol, ammo, body armour and the bat.
+  - **Roba Passeig** (R) sells six outfits for Nil.
+- **Armour** absorbs damage before health and shows as a blue bar under the health bar.
+
+## Police tactics
+
+- **Helicopter** from 4 stars: circles overhead, keeps you spotted, lights you with a searchlight at night and shoots at 5 stars.
+- **Roadblocks** from 3 stars: two patrol cars parked across the street ahead of you.
+- **Traffic lights** at Eixample intersections cycle in a green wave, and traffic stops for them. Police in pursuit don't.
+
+## Driving feel
+
+Skid marks, tyre smoke and squeal when sliding, handbraking or braking hard. The camera follows the direction of a slide.
+Bumpers fall off as a car gets wrecked, and Pinta Ràpid puts them back. A single impact can take at most 40 % of a car's health, and police rams do half damage.
+
+## Performance
+
+Press **F3** for a readout of frame rate, CPU time per frame, draw calls, triangles and object counts.
+People more than 45 m from the camera stop casting shadows and are hidden beyond 140 m; cars stop casting shadows beyond 110 m.
+Your position, armour and outfit are saved along with mission progress.
 
 ## Street life
 
@@ -90,3 +125,6 @@ The look recreates mid-2000s console rendering techniques. Every texture is orig
 | M / P | Map / pause |
 | C / N | Camera distance / mute |
 | I | Show or hide the on-screen controls card |
+| T | Start or stop a taxi or vigilante job (in a taxi or police car) |
+| 1–6 | Buy in a shop |
+| F3 | Performance readout |

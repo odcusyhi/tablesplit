@@ -38,6 +38,16 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--night);color:var
 #clock{font:26px/1 var(--f-display);color:var(--text);letter-spacing:.04em}
 #hbar{width:150px;height:12px;background:#3a1210;border:2px solid #000;position:relative}
 #hbar i{position:absolute;inset:0;right:auto;width:100%;background:linear-gradient(#ef5a45,var(--vermell));transition:width .2s}
+#abar{width:150px;height:8px;background:#14243a;border:2px solid #000;position:relative}
+#abar i{position:absolute;inset:0;right:auto;width:100%;background:linear-gradient(#a8d8ff,#5fb2e0);transition:width .2s}
+#perf{position:absolute;top:calc(8px + env(safe-area-inset-top,0px));left:calc(12px + env(safe-area-inset-left,0px));background:rgba(0,0,0,.65);color:#9fe8a8;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;padding:4px 8px;max-width:calc(100vw - 260px)}
+#shop{position:absolute;left:50%;top:22%;transform:translateX(-50%);width:min(420px,88vw);background:var(--panel);border-top:4px solid #6fd36f;padding:12px 16px;box-sizing:border-box}
+#shop h2{margin:0 0 8px;font:18px var(--f-display);color:#6fd36f}
+#shop ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+#shop li{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;font:600 17px var(--f-text)}
+#shop li b{color:var(--verd);font:15px var(--f-display)}
+#shop li.dim{opacity:.45}
+#shop p{margin:10px 0 0;font:500 14px var(--f-text);color:var(--muted)}
 #money{font:24px/1 var(--f-display);color:var(--verd);letter-spacing:.03em;font-variant-numeric:tabular-nums}
 #stars{font:26px/1 var(--f-display);letter-spacing:2px;color:rgba(0,0,0,.45)}
 #stars b{color:var(--groc);font-weight:400}
@@ -127,6 +137,7 @@ button[disabled]{opacity:.45;cursor:default}
     <div id="stack">
       <div id="clock" class="ol">10:00</div>
       <div id="hbar"><i></i></div>
+      <div id="abar" hidden><i></i></div>
       <div id="money" class="ol">€00000000</div>
       <div id="stars" class="ol"></div>
       <div id="mtimer" class="ol" hidden></div>
@@ -144,6 +155,8 @@ button[disabled]{opacity:.45;cursor:default}
   <div id="controls" hidden><h2>CONTROLS <span id="controls-mode">On foot</span></h2><ul id="controls-list"></ul></div>
   <div id="controls-tab" class="ol" hidden><kbd class="k">I</kbd> Show controls</div>
   <div id="prompt" hidden></div>
+  <div id="shop" hidden></div>
+  <div id="perf" hidden></div>
 </div>
 <div id="fade"></div>
 <canvas id="fullmap" hidden></canvas>
@@ -177,6 +190,7 @@ button[disabled]{opacity:.45;cursor:default}
       <kbd>R · H</kbd><span>Change radio station · horn</span>
       <kbd>M · P</kbd><span>City map · pause</span>
       <kbd>I</kbd><span>Show or hide the on-screen controls card</span>
+      <kbd>T · F3</kbd><span>Taxi / vigilante job in a taxi or police car · performance readout</span>
     </div>
     <p class="small">Yellow beams on the radar are story missions. 20 hidden <em>panots</em> (the flower tile on every Barcelona pavement) are scattered across the city. Pinta Ràpid garages clear your wanted level for €100.</p>
   </div>
@@ -197,13 +211,13 @@ button[disabled]{opacity:.45;cursor:default}
       <div><h3>ON FOOT</h3><ul>
         <li><kbd class="k">W A S D</kbd> Walk</li><li><kbd class="k">Shift</kbd> Sprint</li><li><kbd class="k">Space</kbd> Jump</li>
         <li><kbd class="k">Click</kbd> Punch, punch, kick combo · swing bat · shoot</li><li><kbd class="k">Ctrl</kbd> Attack (same as click)</li>
-        <li><kbd class="k">Q</kbd> Switch weapon</li><li><kbd class="k">F</kbd> Get in a car (or pull the driver out)</li></ul></div>
+        <li><kbd class="k">Q</kbd> Switch weapon</li><li><kbd class="k">F</kbd> Get in a car (or pull the driver out)</li><li><kbd class="k">1–6</kbd> Buy in a shop</li></ul></div>
       <div><h3>DRIVING</h3><ul>
         <li><kbd class="k">W</kbd> Accelerate</li><li><kbd class="k">S</kbd> Brake, then reverse</li><li><kbd class="k">A D</kbd> Steer</li>
-        <li><kbd class="k">Space</kbd> Handbrake</li><li><kbd class="k">F</kbd> Get out</li><li><kbd class="k">H</kbd> Horn</li><li><kbd class="k">R</kbd> Radio station</li></ul></div>
+        <li><kbd class="k">Space</kbd> Handbrake</li><li><kbd class="k">F</kbd> Get out</li><li><kbd class="k">H</kbd> Horn</li><li><kbd class="k">R</kbd> Radio station</li><li><kbd class="k">T</kbd> Taxi or vigilante job (in a taxi or police car)</li></ul></div>
       <div><h3>ANYTIME</h3><ul>
         <li><kbd class="k">Mouse</kbd> Look around (click the city to capture it)</li><li><kbd class="k">M</kbd> City map</li><li><kbd class="k">P</kbd> Pause</li>
-        <li><kbd class="k">C</kbd> Camera distance</li><li><kbd class="k">N</kbd> Mute</li><li><kbd class="k">I</kbd> Show or hide the controls card</li></ul></div>
+        <li><kbd class="k">C</kbd> Camera distance</li><li><kbd class="k">N</kbd> Mute</li><li><kbd class="k">I</kbd> Show or hide the controls card</li><li><kbd class="k">F3</kbd> Performance readout</li></ul></div>
     </div>
     <p class="small">Progress saves automatically after every mission and panot.</p>
   </div>

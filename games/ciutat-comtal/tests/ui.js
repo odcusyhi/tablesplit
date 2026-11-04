@@ -1,0 +1,24 @@
+const { chromium } = require('playwright');
+const path = require('path');
+const G = path.resolve(__dirname, '..');
+const THREE_JS = process.env.THREE_JS || path.join(__dirname, 'three.min.js');
+(async () => {
+  const b = await chromium.launch({ args: ['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader'] });
+  const p = await b.newPage({ viewport: { width: 1280, height: 720 } });
+  const errs = []; p.on('pageerror', e => errs.push(e.message));
+  await p.route('**/*', r => { const u = r.request().url(); if (u.includes('three.min.js')) return r.fulfill({ path: THREE_JS, contentType: 'application/javascript' }); if (u.startsWith('file://')) return r.continue(); return r.abort(); });
+  const html = require('fs').readFileSync(G + '/index.html', 'utf8').replace(/^[\s\S]*?<body>/, '').replace(/<\/body>[\s\S]*$/, '');
+  require('fs').writeFileSync(G + '/_test.html', '<!doctype html><html><head><meta charset="utf-8"></head><body>' + html + '</body></html>');
+  await p.goto('file://' + G + '/_test.html'); await p.waitForFunction(() => window.__game, null, { timeout: 60000 });
+  await p.click('#b-new'); await p.waitForTimeout(300);
+  await p.evaluate(() => { const g = __game; const v = g.vehicles.find(v => v.parked); g.player.pos.set(v.pos.x + 2.4, 0.2, v.pos.z); g.step(12); });
+  await p.waitForTimeout(1200); await p.screenshot({ path: path.join(__dirname, 'out', 'ui-foot.png') });
+  console.log('prompt:', await p.evaluate(() => document.getElementById('prompt').textContent));
+  await p.evaluate(() => { const g = __game; g.enterExit(); g.step(12); });
+  await p.waitForTimeout(1200); await p.screenshot({ path: path.join(__dirname, 'out', 'ui-car.png') });
+  console.log('mode:', await p.evaluate(() => document.getElementById('controls-mode').textContent));
+  await p.keyboard.press('KeyI'); await p.waitForTimeout(400);
+  console.log('after I: card hidden', await p.evaluate(() => document.getElementById('controls').hidden), 'tab shown', await p.evaluate(() => !document.getElementById('controls-tab').hidden));
+  await p.keyboard.press('KeyP'); await p.waitForTimeout(500); await p.screenshot({ path: path.join(__dirname, 'out', 'ui-pause.png') });
+  console.log(errs.join('\n') || 'no errors'); await b.close();
+})();
