@@ -26,7 +26,7 @@ const THREE_JS = process.env.THREE_JS || path.join(__dirname, 'three.min.js');
   await E(() => { const g = __game; g.keys.KeyW = true; g.step(90); g.keys.KeyW = false; });
   const after = await E(() => ({ p: __game.player.car.pos.toArray(), sp: __game.player.car.speed, hp: __game.player.car.health }));
   log('drive: from', before.map(v=>v.toFixed(1)), 'to', after.p.map(v=>v.toFixed(1)), 'speed', after.sp.toFixed(1), 'hp', after.hp.toFixed(0));
-  await p.screenshot({ path: path.join(__dirname, 'out', 'drive.png') });
+  await p.screenshot({ path: path.join(__dirname, 'out', 'drive.png') , timeout: 120000 });
   // teleport car to bar
   await E(() => { const g = __game; const c = g.player.car; c.pos.set(246, 0, 412); c.vx = c.vz = 0; g.step(10); });
   log('after M1: mission idx', await E(() => __game.game.mission), 'money', await E(() => __game.player.money));

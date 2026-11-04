@@ -55,7 +55,7 @@ const THREE_JS = process.env.THREE_JS || path.join(__dirname, 'three.min.js');
   await E(() => { const g = __game; g.step(30 * 10); });
   const cops = await E(() => __game.vehicles.filter(v => v.driver === 'cop' && v.ai && v.ai.mode === 'cop').map(v => [Math.round(Math.hypot(v.pos.x - __game.player.pos.x, v.pos.z - __game.player.pos.z)), Math.round(v.speed)]));
   log('pursuing cops [dist,speed]', JSON.stringify(cops), 'player hp', await E(() => __game.player.health.toFixed(0)), 'van hp', await E(() => __game.player.car && __game.player.car.health.toFixed(0)));
-  await p.screenshot({ path: path.join(__dirname, 'out', 'chase.png') });
+  await p.screenshot({ path: path.join(__dirname, 'out', 'chase.png') , timeout: 120000 });
   // pinta rapid test: teleport van to west garage
   await E(() => { const g = __game; const c = g.player.car; c.pos.set(-680, 0, -91); c.ty = 0; c.vx = c.vz = 0; c.heading = Math.PI; g.step(10); });
   await p.waitForTimeout(1200); await E(() => __game.step(5));
@@ -71,7 +71,7 @@ const THREE_JS = process.env.THREE_JS || path.join(__dirname, 'three.min.js');
   // explosion & map & pause
   await E(() => { const g = __game; const v = g.vehicles.find(v => !v.dead && v !== g.player.car); g.player.pos.set(v.pos.x + 20, 0.2, v.pos.z); v.damage(5000); g.step(200); });
   log('wrecks', await E(() => __game.vehicles.filter(v => v.dead).length), 'player hp', await E(() => __game.player.health.toFixed(0)));
-  await E(() => __game.openMap()); await p.waitForTimeout(400); await p.screenshot({ path: path.join(__dirname, 'out', 'map.png') }); await E(() => __game.closeMap());
+  await E(() => __game.openMap()); await p.waitForTimeout(400); await p.screenshot({ path: path.join(__dirname, 'out', 'map.png') , timeout: 120000 }); await E(() => __game.closeMap());
   await p.keyboard.press('KeyP'); await p.waitForTimeout(300); log('pause visible', await E(() => !document.getElementById('pause').hidden)); await p.keyboard.press('KeyP');
   log(errs.slice(0, 10).join('\n') || 'no errors');
   await b.close();

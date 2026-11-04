@@ -1,6 +1,5 @@
 const { chromium } = require('playwright');
 const path = require('path');
-const path = require('path');
 const G = path.resolve(__dirname, '..');
 const THREE_JS = process.env.THREE_JS || path.join(__dirname, 'three.min.js');
 (async () => {
@@ -22,10 +21,10 @@ const THREE_JS = process.env.THREE_JS || path.join(__dirname, 'three.min.js');
   await p.waitForFunction(() => window.__game, null, { timeout: 60000 });
   console.log('boot ms', Date.now() - t0);
   await p.waitForTimeout(1500);
-  await p.screenshot({ path: path.join(__dirname, 'out', 'title.png') });
+  await p.screenshot({ path: path.join(__dirname, 'out', 'title.png') , timeout: 120000 });
   await p.click('#b-new');
   await p.waitForTimeout(2500);
-  await p.screenshot({ path: path.join(__dirname, 'out', 'start.png') });
+  await p.screenshot({ path: path.join(__dirname, 'out', 'start.png') , timeout: 120000 });
   // walk forward
   await p.keyboard.down('KeyW'); await p.waitForTimeout(1500); await p.keyboard.up('KeyW');
   const st = await p.evaluate(() => { const g = window.__game; return { pos: g.player.pos.toArray().map(v=>+v.toFixed(1)), veh: g.vehicles.length, peds: g.peds.length, mission: g.mission.run ? 'running' : 'none', state: g.game.state }; });

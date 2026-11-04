@@ -16,7 +16,7 @@ const THREE_JS = process.env.THREE_JS || path.join(__dirname, 'three.min.js');
   log('shop', JSON.stringify(await E(() => { const g = __game; g.player.money = 1000; const gun = g.placeMarkers.find(q => q.kind === 'gun'); g.player.pos.set(gun.x, 0.2, gun.z); g.step(3);
     const open = !document.getElementById('shop').hidden; g.buyItem(0); g.buyItem(1); const r = { open, pistol: g.player.hasPistol, ammo: g.player.ammo, armor: g.player.armor, money: g.player.money };
     const cl = g.placeMarkers.find(q => q.kind === 'clothes'); g.player.pos.set(cl.x, 0.2, cl.z); g.step(3); g.buyItem(2); r.outfit = g.player.outfit; return r; })));
-  await p.waitForTimeout(800); await p.screenshot({ path: path.join(__dirname, 'out', 'shop.png') });
+  await p.waitForTimeout(800); await p.screenshot({ path: path.join(__dirname, 'out', 'shop.png') , timeout: 120000 });
   // armour absorbs damage
   log('armour', JSON.stringify(await E(() => { const g = __game; g.player.pos.set(-150, 0.2, 186); g.step(2); const h0 = g.player.health; g.player.armor = 30; /* hurt via crime-free path */ g.player.health = 100; return { before: [100, 30] }; })));
   // taxi
@@ -44,7 +44,7 @@ const THREE_JS = process.env.THREE_JS || path.join(__dirname, 'three.min.js');
   log('police', JSON.stringify(await E(() => { const g = __game; const pc = new (g.vehicles[0].constructor)('picolo', -120, -200, 0); g.player.pos.set(pc.pos.x + 2, 0.2, pc.pos.z); g.enterExit(); g.setHeat(4.5); g.keys.KeyW = true;
     let rb = 0; for (let i = 0; i < 40; i++) { const c = g.player.car; if (c.pos.z > 150) { c.pos.z = -400; } c.heading = 0; g.step(30); rb = Math.max(rb, g.vehicles.filter(v => v.roadblock).length); } g.keys.KeyW = false;
     const h = g.heliRef(); return { heli: !!h, heliAlt: h && Math.round(h.g.position.y), roadblockCars: rb, lights: g.lights.length, lightStates: [...new Set(g.lights.map(l => l.st))].join('') }; })));
-  await p.waitForTimeout(800); await p.screenshot({ path: path.join(__dirname, 'out', 'heli.png') });
+  await p.waitForTimeout(800); await p.screenshot({ path: path.join(__dirname, 'out', 'heli.png') , timeout: 120000 });
   // traffic waits at red: count AI cars stopped near a red light
   log('lights obeyed', JSON.stringify(await E(() => { const g = __game; g.setHeat(0); g.step(30 * 8); const stopped = g.vehicles.filter(v => v.driver === 'ai' && v.ai && v.ai.mode === 'traffic' && Math.abs(v.speed) < 0.5).length; const moving = g.vehicles.filter(v => v.driver === 'ai' && Math.abs(v.speed) > 3).length; return { stopped, moving }; })));
   // skids + bumpers + perf + save

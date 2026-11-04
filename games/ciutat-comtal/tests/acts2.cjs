@@ -22,7 +22,7 @@ const THREE_JS = process.env.THREE_JS || path.join(__dirname, 'three.min.js');
     c.vx = 0; c.vz = 28; g.keys.Space = true; g.keys.KeyD = true; g.step(25); g.keys.Space = false; g.keys.KeyD = false;
     const b0 = c.mesh.userData.bumpers.filter(m => m.visible).length; c.damage(c.t.hp * 0.75); const b1 = c.mesh.userData.bumpers.filter(m => m.visible).length;
     g.togglePerf(); g.step(20); const perf = document.getElementById('perf').textContent; return { bumpersBefore: b0, bumpersAfter: b1, perf }; })));
-  await p.waitForTimeout(1000); await p.screenshot({ path: path.join(__dirname, 'out', 'skids.png') });
+  await p.waitForTimeout(1000); await p.screenshot({ path: path.join(__dirname, 'out', 'skids.png') , timeout: 120000 });
   log('save', await E(() => { __game.togglePerf(); const s = JSON.parse(localStorage.getItem('ciutat-comtal-save-v1') || 'null'); return JSON.stringify(s && { pos: s.pos, outfit: s.outfit, armor: s.armor }); }));
   log(errs.slice(0, 8).join('\n') || 'no errors'); await b.close();
 })();
